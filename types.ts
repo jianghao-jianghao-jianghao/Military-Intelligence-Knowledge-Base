@@ -71,7 +71,8 @@ export interface KnowledgeBase {
   description: string;
   clearance: ClearanceLevel;
   authorized_departments: string[];
-  authorized_roles: UserRole[];
+  authorized_roles: string[]; // Role IDs
+  authorized_users: string[]; // User IDs
   owner_id: string;
   created_at: string;
 }

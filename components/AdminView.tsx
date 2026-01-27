@@ -10,6 +10,7 @@ const AdminView: React.FC = () => {
   const [departments, setDepartments] = useState<Department[]>(MOCK_DEPARTMENTS);
   const [roles, setRoles] = useState<Role[]>(MOCK_ROLES);
   const [users, setUsers] = useState<User[]>(MOCK_USERS);
+  const [kbs, setKbs] = useState<KnowledgeBase[]>(MOCK_KBS);
   const [requests, setRequests] = useState<RegistrationRequest[]>([
     {
       id: 'req-1',
@@ -35,6 +36,7 @@ const AdminView: React.FC = () => {
       name: req.fullName,
       username: req.username,
       departmentId: req.departmentId,
+      role: (roles.find(r => r.departmentId === req.departmentId) as any)?.name || 'USER',
       roleId: 'r3', // Default researcher role
       clearance: req.intendedClearance,
       status: 'ACTIVE'
@@ -91,6 +93,7 @@ const AdminView: React.FC = () => {
       username: form.username.value,
       departmentId: form.departmentId.value,
       roleId: form.roleId.value,
+      role: roles.find(r => r.id === form.roleId.value)?.name as any || 'USER',
       clearance: form.clearance.value as ClearanceLevel,
       status: form.status.value as any
     };
@@ -103,11 +106,57 @@ const AdminView: React.FC = () => {
     setActiveModal(null);
   };
 
+  const handleSaveKB = (e: React.FormEvent) => {
+    e.preventDefault();
+    const form = e.target as any;
+    const selectedDepts = Array.from(form.authorized_departments).filter((i: any) => i.checked).map((i: any) => i.value);
+    const selectedRoles = Array.from(form.authorized_roles).filter((i: any) => i.checked).map((i: any) => i.value);
+    const selectedUsers = Array.from(form.authorized_users).filter((i: any) => i.checked).map((i: any) => i.value);
+
+    const newKB: KnowledgeBase = {
+      id: editingItem?.id || `kb-${Date.now()}`,
+      name: form.name.value,
+      description: form.description.value,
+      clearance: form.clearance.value as ClearanceLevel,
+      authorized_departments: selectedDepts,
+      authorized_roles: selectedRoles,
+      authorized_users: selectedUsers,
+      owner_id: editingItem?.owner_id || '1',
+      created_at: editingItem?.created_at || new Date().toISOString().split('T')[0]
+    };
+
+    if (editingItem) {
+      setKbs(kbs.map(k => k.id === newKB.id ? newKB : k));
+    } else {
+      setKbs([...kbs, newKB]);
+    }
+    setActiveModal(null);
+  };
+
+  const handleSavePolicy = (e: React.FormEvent) => {
+    e.preventDefault();
+    const form = e.target as any;
+    const newPolicy: SensitiveWordPolicy = {
+      id: editingItem?.id || `p-${Date.now()}`,
+      word: form.word.value,
+      replacement: form.replacement.value,
+      severity: form.severity.value as any,
+      is_active: form.is_active.checked
+    };
+
+    if (editingItem) {
+      setPolicies(policies.map(p => p.id === newPolicy.id ? newPolicy : p));
+    } else {
+      setPolicies([...policies, newPolicy]);
+    }
+    setActiveModal(null);
+  };
+
   return (
     <div className="flex h-full bg-[#f6f8fa] dark:bg-[#0d1117] transition-all overflow-hidden">
       {/* Sidebar Navigation */}
       <div className="w-64 border-r border-[#d0d7de] dark:border-[#30363d] p-4 flex flex-col gap-1 bg-[#f6f8fa] dark:bg-[#0d1117]">
-        <h3 className="px-3 py-2 text-[10px] font-black text-[#57606a] dark:text-[#8b949e] uppercase tracking-widest">系统治理中心</h3>
+        <h3 className="px-3 py-2 text-[10px] font-black text-[#57606a] dark:text-[#8b949e] uppercase tracking-widest">研制治理核心</h3>
         {[
           { id: 'approvals', label: '待办审计', icon: '⚖️', count: requests.length },
           { id: 'departments', label: '组织架构', icon: '🏢' },
@@ -286,11 +335,136 @@ const AdminView: React.FC = () => {
           </div>
         )}
 
-        {/* KBS and other tabs are similar... omitted for length but logically follow the same pattern */}
-        {(adminTab === 'kbs' || adminTab === 'security' || adminTab === 'audit') && (
-           <div className="flex items-center justify-center h-64 text-[#8b949e]">
-              已在模块 [App.tsx] 中定义，请在该模块中查看对应渲染。
-           </div>
+        {/* KBs Tab (Resource Library Management) */}
+        {adminTab === 'kbs' && (
+          <div className="space-y-6 animate-in fade-in duration-300">
+             <div className="flex justify-between items-center">
+                <h2 className="text-2xl font-bold">资源库资产地图</h2>
+                <button onClick={() => { setEditingItem(null); setActiveModal('kb'); }} className="bg-[#0366d6] text-white px-4 py-1.5 rounded-md text-xs font-bold shadow-md hover:opacity-90 flex items-center gap-2">
+                  <Icons.Plus /> 新建资源库
+                </button>
+             </div>
+             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                {kbs.map(kb => (
+                  <div key={kb.id} className="bg-white dark:bg-[#161b22] border border-[#d0d7de] dark:border-[#30363d] p-6 rounded-xl flex flex-col group hover:border-[#0366d6] transition-all shadow-sm">
+                    <div className="flex justify-between items-start mb-4">
+                      <div>
+                        <h4 className="font-bold text-lg">{kb.name}</h4>
+                        <p className="text-xs text-[#57606a] dark:text-[#8b949e] mt-1">{kb.description}</p>
+                      </div>
+                      <span className={`text-[10px] font-black px-2 py-0.5 border rounded ${kb.clearance === '机密' ? 'border-red-500 text-red-500' : 'border-green-500 text-green-500'}`}>{kb.clearance}</span>
+                    </div>
+                    
+                    <div className="mt-4 pt-4 border-t border-[#f0f2f4] dark:border-[#30363d] space-y-4">
+                       <div className="flex flex-wrap gap-2">
+                          <span className="text-[10px] font-black text-[#8b949e] uppercase w-full">访问授权概览</span>
+                          <span className="text-[10px] bg-[#f6f8fa] dark:bg-[#0d1117] px-2 py-1 rounded border border-[#30363d]">{kb.authorized_departments.length} 部门</span>
+                          <span className="text-[10px] bg-[#f6f8fa] dark:bg-[#0d1117] px-2 py-1 rounded border border-[#30363d]">{kb.authorized_roles.length} 角色</span>
+                          <span className="text-[10px] bg-[#f6f8fa] dark:bg-[#0d1117] px-2 py-1 rounded border border-[#30363d]">{kb.authorized_users.length} 人员</span>
+                       </div>
+                    </div>
+
+                    <div className="mt-6 flex gap-2">
+                       <button onClick={() => { setEditingItem(kb); setActiveModal('kb'); }} className="flex-1 py-1.5 text-xs font-bold bg-[#f6f8fa] dark:bg-[#21262d] border border-[#d0d7de] dark:border-[#30363d] rounded hover:border-[#0366d6]">权限下发</button>
+                       <button className="flex-1 py-1.5 text-xs font-bold bg-[#f6f8fa] dark:bg-[#21262d] border border-[#d0d7de] dark:border-[#30363d] rounded hover:border-[#0366d6]">资产审计</button>
+                    </div>
+                  </div>
+                ))}
+             </div>
+          </div>
+        )}
+
+        {/* Security Policies (Compliance DLP) */}
+        {adminTab === 'security' && (
+          <div className="space-y-6 animate-in fade-in duration-300">
+             <div className="flex justify-between items-center">
+                <h2 className="text-2xl font-bold">合规脱敏策略 (DLP)</h2>
+                <button onClick={() => { setEditingItem(null); setActiveModal('policy'); }} className="bg-[#0366d6] text-white px-4 py-1.5 rounded-md text-xs font-bold shadow-md hover:opacity-90 flex items-center gap-2">
+                  <Icons.Plus /> 新增拦截词
+                </button>
+             </div>
+             <div className="bg-white dark:bg-[#161b22] border border-[#d0d7de] dark:border-[#30363d] rounded-xl overflow-hidden shadow-sm">
+                <table className="w-full text-left text-sm">
+                   <thead className="bg-[#f6f8fa] dark:bg-[#1c2128] border-b border-[#d0d7de] dark:border-[#30363d]">
+                      <tr>
+                         <th className="px-6 py-4 font-bold">敏感词 (Intercept)</th>
+                         <th className="px-6 py-4 font-bold">替换词 (Mask)</th>
+                         <th className="px-6 py-4 font-bold">风险等级</th>
+                         <th className="px-6 py-4 font-bold">启用状态</th>
+                         <th className="px-6 py-4 font-bold text-right">操作</th>
+                      </tr>
+                   </thead>
+                   <tbody className="divide-y divide-[#d0d7de] dark:divide-[#30363d]">
+                      {policies.map(p => (
+                         <tr key={p.id} className="hover:bg-gray-50 dark:hover:bg-[#1c2128]">
+                            <td className="px-6 py-4 font-mono text-red-500 font-bold">{p.word}</td>
+                            <td className="px-6 py-4 font-mono text-green-500 font-bold">{p.replacement}</td>
+                            <td className="px-6 py-4">
+                               <span className={`text-[10px] font-bold px-2 py-0.5 rounded ${p.severity === 'high' ? 'bg-red-100 text-red-700' : 'bg-yellow-100 text-yellow-700'}`}>
+                                  {p.severity === 'high' ? '严重核心' : '常规敏感'}
+                               </span>
+                            </td>
+                            <td className="px-6 py-4">
+                               <div className={`w-8 h-4 rounded-full relative transition-colors ${p.is_active ? 'bg-green-500' : 'bg-gray-300 dark:bg-gray-600'}`}>
+                                  <div className={`absolute top-0.5 w-3 h-3 bg-white rounded-full transition-all ${p.is_active ? 'right-0.5' : 'left-0.5'}`}></div>
+                               </div>
+                            </td>
+                            <td className="px-6 py-4 text-right">
+                               <div className="flex gap-3 justify-end">
+                                  <button onClick={() => { setEditingItem(p); setActiveModal('policy'); }} className="text-[#0366d6] text-xs font-bold hover:underline">编辑</button>
+                                  <button onClick={() => setPolicies(policies.filter(i => i.id !== p.id))} className="text-red-500 text-xs font-bold hover:underline">注销</button>
+                               </div>
+                            </td>
+                         </tr>
+                      ))}
+                   </tbody>
+                </table>
+             </div>
+          </div>
+        )}
+
+        {/* Audit Tab (Historical Audit Logs) */}
+        {adminTab === 'audit' && (
+          <div className="space-y-6 animate-in fade-in duration-300">
+             <div className="flex justify-between items-center">
+                <h2 className="text-2xl font-bold">系统历史审计日志</h2>
+                <div className="flex gap-2">
+                   <button className="px-3 py-1.5 border border-[#30363d] rounded text-xs font-bold hover:bg-gray-800">导出 PDF 报表</button>
+                   <button className="px-3 py-1.5 border border-[#30363d] rounded text-xs font-bold hover:bg-gray-800">清理 30天前记录</button>
+                </div>
+             </div>
+             <div className="bg-white dark:bg-[#161b22] border border-[#d0d7de] dark:border-[#30363d] rounded-xl overflow-hidden shadow-sm">
+                <table className="w-full text-left text-xs">
+                   <thead className="bg-[#f6f8fa] dark:bg-[#1c2128] border-b border-[#d0d7de] dark:border-[#30363d]">
+                      <tr>
+                         <th className="px-6 py-4 font-bold">时间戳</th>
+                         <th className="px-6 py-4 font-bold">执行主体</th>
+                         <th className="px-6 py-4 font-bold">操作指令</th>
+                         <th className="px-6 py-4 font-bold">资源对象</th>
+                         <th className="px-6 py-4 font-bold text-right">执行结果</th>
+                      </tr>
+                   </thead>
+                   <tbody className="divide-y divide-[#d0d7de] dark:divide-[#30363d]">
+                      {MOCK_AUDIT_LOGS.map(log => (
+                         <tr key={log.id} className="hover:bg-gray-50 dark:hover:bg-[#1c2128]">
+                            <td className="px-6 py-4 font-mono text-[#57606a] dark:text-[#8b949e]">{log.timestamp}</td>
+                            <td className="px-6 py-4">
+                               <p className="font-bold">{log.userName}</p>
+                               <p className="text-[10px] text-[#8b949e]">ID: {log.userId}</p>
+                            </td>
+                            <td className="px-6 py-4 font-mono">{log.action}</td>
+                            <td className="px-6 py-4">{log.resource}</td>
+                            <td className="px-6 py-4 text-right">
+                               <span className={`font-bold px-2 py-1 rounded ${
+                                  log.status === 'SUCCESS' ? 'text-green-500' : log.status === 'DENIED' ? 'text-red-500' : 'text-yellow-500'
+                               }`}>{log.status}</span>
+                            </td>
+                         </tr>
+                      ))}
+                   </tbody>
+                </table>
+             </div>
+          </div>
         )}
       </div>
 
@@ -347,6 +521,115 @@ const AdminView: React.FC = () => {
               <div className="flex gap-4 mt-8">
                  <button type="button" onClick={() => setActiveModal(null)} className="flex-1 py-2 text-sm font-bold border border-[#30363d] rounded hover:bg-gray-50 dark:hover:bg-[#21262d]">取消</button>
                  <button type="submit" className="flex-1 py-2 text-sm font-bold bg-[#0366d6] text-white rounded shadow-lg">保存策略</button>
+              </div>
+           </form>
+        </div>
+      )}
+
+      {activeModal === 'kb' && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[100] flex items-center justify-center p-6 animate-in fade-in duration-200">
+           <form onSubmit={handleSaveKB} className="bg-white dark:bg-[#161b22] border border-[#d0d7de] dark:border-[#30363d] w-full max-w-2xl rounded-2xl shadow-2xl p-8 animate-in zoom-in-95 max-h-[90vh] overflow-y-auto">
+              <h3 className="text-xl font-bold mb-6">{editingItem ? `资源库权限分发: ${editingItem.name}` : '新建研制资源库'}</h3>
+              <div className="space-y-6">
+                 <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-1">
+                       <label className="text-[10px] font-black text-[#8b949e] uppercase">库名称</label>
+                       <input name="name" defaultValue={editingItem?.name} required className="w-full bg-[#f6f8fa] dark:bg-[#0d1117] border border-[#30363d] rounded p-2 text-sm" />
+                    </div>
+                    <div className="space-y-1">
+                       <label className="text-[10px] font-black text-[#8b949e] uppercase">基准密级</label>
+                       <select name="clearance" defaultValue={editingItem?.clearance} className="w-full bg-[#f6f8fa] dark:bg-[#0d1117] border border-[#30363d] rounded p-2 text-sm">
+                          {Object.values(ClearanceLevel).map(c => <option key={c} value={c}>{c}</option>)}
+                       </select>
+                    </div>
+                 </div>
+                 <div className="space-y-1">
+                    <label className="text-[10px] font-black text-[#8b949e] uppercase">业务描述</label>
+                    <textarea name="description" defaultValue={editingItem?.description} className="w-full bg-[#f6f8fa] dark:bg-[#0d1117] border border-[#30363d] rounded p-2 text-sm h-16 resize-none" />
+                 </div>
+                 
+                 <div className="h-px bg-[#30363d] my-2"></div>
+                 
+                 <div className="space-y-4">
+                    <p className="text-xs font-bold text-blue-500 uppercase tracking-widest">访问白名单控制 (Access Control List)</p>
+                    
+                    <div className="grid grid-cols-3 gap-6">
+                       <div className="space-y-2">
+                          <label className="text-[10px] font-black text-[#8b949e] uppercase">授权部门 (DEPT)</label>
+                          <div className="space-y-1 max-h-40 overflow-y-auto border border-[#30363d] p-2 rounded">
+                             {departments.map(d => (
+                                <label key={d.id} className="flex items-center gap-2 hover:bg-gray-800 p-1 rounded cursor-pointer">
+                                   <input type="checkbox" name="authorized_departments" value={d.id} defaultChecked={editingItem?.authorized_departments.includes(d.id)} />
+                                   <span className="text-[10px] truncate">{d.name}</span>
+                                </label>
+                             ))}
+                          </div>
+                       </div>
+                       <div className="space-y-2">
+                          <label className="text-[10px] font-black text-[#8b949e] uppercase">授权角色 (ROLE)</label>
+                          <div className="space-y-1 max-h-40 overflow-y-auto border border-[#30363d] p-2 rounded">
+                             {roles.map(r => (
+                                <label key={r.id} className="flex items-center gap-2 hover:bg-gray-800 p-1 rounded cursor-pointer">
+                                   <input type="checkbox" name="authorized_roles" value={r.id} defaultChecked={editingItem?.authorized_roles.includes(r.id)} />
+                                   <span className="text-[10px] truncate">{r.name}</span>
+                                </label>
+                             ))}
+                          </div>
+                       </div>
+                       <div className="space-y-2">
+                          <label className="text-[10px] font-black text-[#8b949e] uppercase">人员特权 (USER)</label>
+                          <div className="space-y-1 max-h-40 overflow-y-auto border border-[#30363d] p-2 rounded">
+                             {users.map(u => (
+                                <label key={u.id} className="flex items-center gap-2 hover:bg-gray-800 p-1 rounded cursor-pointer">
+                                   <input type="checkbox" name="authorized_users" value={u.id} defaultChecked={editingItem?.authorized_users.includes(u.id)} />
+                                   <span className="text-[10px] truncate">{u.name}</span>
+                                </label>
+                             ))}
+                          </div>
+                       </div>
+                    </div>
+                 </div>
+              </div>
+              <div className="flex gap-4 mt-10">
+                 <button type="button" onClick={() => setActiveModal(null)} className="flex-1 py-2 text-sm font-bold border border-[#30363d] rounded hover:bg-gray-50 dark:hover:bg-[#21262d]">取消</button>
+                 <button type="submit" className="flex-1 py-2 text-sm font-bold bg-[#0366d6] text-white rounded shadow-lg">保存分发策略</button>
+              </div>
+           </form>
+        </div>
+      )}
+
+      {activeModal === 'policy' && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[100] flex items-center justify-center p-6 animate-in fade-in duration-200">
+           <form onSubmit={handleSavePolicy} className="bg-white dark:bg-[#161b22] border border-[#d0d7de] dark:border-[#30363d] w-full max-w-md rounded-2xl shadow-2xl p-8 animate-in zoom-in-95">
+              <h3 className="text-xl font-bold mb-6">{editingItem ? '修改脱敏规则' : '定义新 DLP 拦截词'}</h3>
+              <div className="space-y-4">
+                 <div className="space-y-1">
+                    <label className="text-[10px] font-black text-[#8b949e] uppercase">拦截关键词</label>
+                    <input name="word" defaultValue={editingItem?.word} required className="w-full bg-[#f6f8fa] dark:bg-[#0d1117] border border-[#30363d] rounded p-2 text-sm font-mono" placeholder="如: J-20" />
+                 </div>
+                 <div className="space-y-1">
+                    <label className="text-[10px] font-black text-[#8b949e] uppercase">脱敏替换内容</label>
+                    <input name="replacement" defaultValue={editingItem?.replacement} required className="w-full bg-[#f6f8fa] dark:bg-[#0d1117] border border-[#30363d] rounded p-2 text-sm font-mono" placeholder="如: [某型五代机]" />
+                 </div>
+                 <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-1">
+                       <label className="text-[10px] font-black text-[#8b949e] uppercase">风险等级</label>
+                       <select name="severity" defaultValue={editingItem?.severity || 'high'} className="w-full bg-[#f6f8fa] dark:bg-[#0d1117] border border-[#30363d] rounded p-2 text-sm">
+                          <option value="high">严重核心 (HIGH)</option>
+                          <option value="low">常规敏感 (LOW)</option>
+                       </select>
+                    </div>
+                    <div className="space-y-1 flex flex-col justify-end pb-2">
+                       <label className="flex items-center gap-2 cursor-pointer">
+                          <input type="checkbox" name="is_active" defaultChecked={editingItem?.is_active ?? true} />
+                          <span className="text-[10px] font-black text-[#8b949e] uppercase">立即激活策略</span>
+                       </label>
+                    </div>
+                 </div>
+              </div>
+              <div className="flex gap-4 mt-10">
+                 <button type="button" onClick={() => setActiveModal(null)} className="flex-1 py-2 text-sm font-bold border border-[#30363d] rounded hover:bg-gray-50 dark:hover:bg-[#21262d]">取消</button>
+                 <button type="submit" className="flex-1 py-2 text-sm font-bold bg-[#0366d6] text-white rounded shadow-lg">应用策略</button>
               </div>
            </form>
         </div>

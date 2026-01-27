@@ -1,9 +1,9 @@
 
 import React, { useState, useEffect } from 'react';
-import Layout from './components/Layout';
-import QAView from './components/QAView';
-import KnowledgeGraph from './components/KnowledgeGraph';
-import { Icons } from './constants';
+import Layout from './components/Layout.tsx';
+import QAView from './components/QAView.tsx';
+import KnowledgeGraph from './components/KnowledgeGraph.tsx';
+import { Icons } from './constants.tsx';
 
 const App: React.FC = () => {
   const [activeTab, setActiveTab] = useState('qa');

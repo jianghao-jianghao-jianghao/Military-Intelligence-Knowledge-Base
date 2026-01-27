@@ -1,9 +1,9 @@
 
 import React, { useState } from 'react';
-import { performQA } from '../services/geminiService';
-import { QAResponse } from '../types';
-import EvidencePanel from './EvidencePanel';
-import { Icons } from '../constants';
+import { performQA } from '../services/geminiService.ts';
+import { QAResponse } from '../types.ts';
+import EvidencePanel from './EvidencePanel.tsx';
+import { Icons } from '../constants.tsx';
 
 const QAView: React.FC = () => {
   const [query, setQuery] = useState('');

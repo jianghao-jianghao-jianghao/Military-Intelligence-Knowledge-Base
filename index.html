@@ -13,14 +13,12 @@
           extend: {
             colors: {
               gh: {
-                // Light Mode
                 bg: '#ffffff',
                 surface: '#f6f8fa',
                 border: '#d0d7de',
                 text: '#24292f',
                 muted: '#57606a',
                 accent: '#0366d6',
-                // Dark Mode (Standard GitHub Dark)
                 darkBg: '#0d1117',
                 darkSurface: '#161b22',
                 darkBorder: '#30363d',
@@ -44,7 +42,6 @@
         .font-mono {
             font-family: 'JetBrains Mono', monospace;
         }
-        /* GitHub Scrollbar - Context Aware */
         ::-webkit-scrollbar {
             width: 8px;
             height: 8px;
@@ -73,14 +70,17 @@
 {
   "imports": {
     "@google/genai": "https://esm.sh/@google/genai@^1.38.0",
-    "react-dom/": "https://esm.sh/react-dom@^19.2.4/",
-    "react/": "https://esm.sh/react@^19.2.4/",
-    "react": "https://esm.sh/react@^19.2.4"
+    "react": "https://esm.sh/react@19.0.0",
+    "react/": "https://esm.sh/react@19.0.0/",
+    "react-dom": "https://esm.sh/react-dom@19.0.0",
+    "react-dom/client": "https://esm.sh/react-dom@19.0.0/client",
+    "react-dom/": "https://esm.sh/react-dom@^19.2.4/"
   }
 }
 </script>
 </head>
 <body class="bg-white dark:bg-[#0d1117] text-[#24292f] dark:text-[#c9d1d9] transition-colors duration-200">
     <div id="root"></div>
+    <script type="module" src="./index.tsx"></script>
 </body>
 </html>

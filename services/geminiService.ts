@@ -1,6 +1,6 @@
 
 import { GoogleGenAI, Type } from "@google/genai";
-import { QAResponse } from "../types";
+import { QAResponse } from "../types.ts";
 
 export const performQA = async (query: string): Promise<QAResponse> => {
   const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });

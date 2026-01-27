@@ -1,97 +1,143 @@
 
-import React from 'react';
-import { Icons } from '../constants';
+import React, { useState } from 'react';
+import { Icons } from '../constants.tsx';
 
 const KnowledgeGraph: React.FC = () => {
+  const [mode, setMode] = useState<'normal' | 'path' | 'time'>('normal');
+  const [selectedEntity, setSelectedEntity] = useState<string | null>('15式轻型坦克');
+
   return (
-    <div className="h-full flex flex-col bg-white dark:bg-[#0d1117] text-[#24292f] dark:text-[#c9d1d9] transition-colors duration-200">
-      <div className="p-6 border-b border-[#d0d7de] dark:border-[#30363d] bg-white dark:bg-[#0d1117] flex justify-between items-center transition-colors duration-200">
-        <div>
-           <h2 className="text-xl font-bold text-[#24292f] dark:text-[#f0f6fc]">知识图谱浏览器 (KG Explorer)</h2>
-           <p className="text-xs text-[#57606a] dark:text-[#8b949e] mt-1">可视化战术资产、单位编制与地理情报的关联网络</p>
+    <div className="h-full flex flex-col bg-white dark:bg-[#0d1117] transition-colors duration-200 overflow-hidden">
+      <div className="p-6 border-b border-[#d0d7de] dark:border-[#30363d] flex justify-between items-center bg-white dark:bg-[#0d1117] z-20">
+        <div className="flex items-center gap-3">
+           <h2 className="text-xl font-bold">装备本体图谱浏览器</h2>
+           <span className="text-[10px] px-2 py-0.5 bg-[#f6f8fa] dark:bg-[#161b22] border border-[#d0d7de] dark:border-[#30363d] rounded text-[#57606a] dark:text-[#8b949e]">实体: 24,192 | 关系: 82,041</span>
         </div>
         <div className="flex gap-2">
-          <button className="px-3 py-1.5 border border-[#d0d7de] dark:border-[#30363d] rounded-md text-xs font-semibold bg-white dark:bg-[#21262d] text-[#24292f] dark:text-[#c9d1d9] hover:bg-[#f6f8fa] dark:hover:bg-[#30363d]">重置视角</button>
-          <button className="px-3 py-1.5 border border-[#d0d7de] dark:border-[#30363d] rounded-md text-xs font-semibold bg-[#0366d6] dark:bg-[#1f6feb] text-white hover:opacity-90 transition-opacity">导出本体架构</button>
+           <button 
+            onClick={() => setMode('path')}
+            className={`text-xs font-bold px-3 py-1.5 border border-[#d0d7de] dark:border-[#30363d] rounded-md transition-all flex items-center gap-2 ${mode === 'path' ? 'bg-[#0366d6] text-white' : 'hover:bg-[#f6f8fa] dark:hover:bg-[#161b22]'}`}>
+             <span>🔍</span> 路径发现
+           </button>
+           <button 
+            onClick={() => setMode('time')}
+            className={`text-xs font-bold px-3 py-1.5 border border-[#d0d7de] dark:border-[#30363d] rounded-md transition-all flex items-center gap-2 ${mode === 'time' ? 'bg-[#0366d6] text-white' : 'hover:bg-[#f6f8fa] dark:hover:bg-[#161b22]'}`}>
+             <span>🕒</span> 时序演进
+           </button>
+           {mode !== 'normal' && (
+             <button onClick={() => setMode('normal')} className="text-xs text-red-500 font-bold px-3">退出模式</button>
+           )}
         </div>
       </div>
       
-      <div className="flex-1 relative overflow-hidden bg-white dark:bg-[#0d1117] transition-colors duration-200">
+      <div className="flex-1 relative bg-white dark:bg-[#0d1117] overflow-hidden">
         {/* 背景网格 */}
-        <div className="absolute inset-0 opacity-[0.03] dark:opacity-[0.1]" style={{ backgroundImage: 'radial-gradient(currentColor 1px, transparent 0)', backgroundSize: '24px 24px' }}></div>
+        <div className="absolute inset-0 opacity-[0.03] dark:opacity-[0.1]" style={{ backgroundImage: 'radial-gradient(currentColor 1px, transparent 0)', backgroundSize: '30px 30px' }}></div>
 
-        <svg width="100%" height="100%" className="relative">
-           <defs>
-             <marker id="arrowhead" markerWidth="10" markerHeight="7" refX="25" refY="3.5" orient="auto">
-               <polygon points="0 0, 10 3.5, 0 7" className="fill-[#d0d7de] dark:fill-[#30363d]" />
-             </marker>
-           </defs>
-           
-           {/* 连线 */}
-           <line x1="300" y1="300" x2="500" y2="400" stroke="currentColor" strokeWidth="1.5" className="text-[#d0d7de] dark:text-[#30363d]" markerEnd="url(#arrowhead)" />
-           <line x1="500" y1="400" x2="450" y2="600" stroke="currentColor" strokeWidth="1.5" className="text-[#d0d7de] dark:text-[#30363d]" />
-           <line x1="300" y1="300" x2="250" y2="550" stroke="currentColor" strokeWidth="1.5" className="text-[#d0d7de] dark:text-[#30363d]" />
-           <line x1="500" y1="400" x2="700" y2="350" stroke="currentColor" strokeWidth="1.5" className="text-[#d0d7de] dark:text-[#30363d]" />
-           
-           {/* 实体节点 */}
-           <g transform="translate(300, 300)" className="cursor-pointer group">
-              <circle r="35" className="fill-[#0366d6] dark:fill-[#1f6feb] group-hover:opacity-80 transition-opacity" />
-              <text y="55" textAnchor="middle" className="text-[11px] font-bold fill-[#24292f] dark:fill-[#c9d1d9]">DF-17 导弹系统</text>
-              <text y="0" dominantBaseline="middle" textAnchor="middle" fill="white" className="text-[10px] font-bold">核心</text>
-           </g>
-           
-           <g transform="translate(500, 400)" className="cursor-pointer group">
-              <circle r="30" className="fill-[#cf222e] dark:fill-[#da3633] group-hover:opacity-80 transition-opacity" />
-              <text y="50" textAnchor="middle" className="text-[11px] font-bold fill-[#24292f] dark:fill-[#c9d1d9]">南部战区司令部</text>
-           </g>
+        {/* Path Discovery Interface Overlay */}
+        {mode === 'path' && (
+          <div className="absolute top-6 left-6 z-30 bg-[#1c2128] border border-blue-500/50 p-4 rounded-xl shadow-2xl w-72 animate-in slide-in-from-left-4">
+             <h4 className="text-xs font-black text-blue-500 uppercase tracking-widest mb-4">路径发现引擎 (Path-Finder)</h4>
+             <div className="space-y-3">
+                <input type="text" className="w-full bg-[#0d1117] border border-[#30363d] rounded px-3 py-2 text-xs" placeholder="起点: 15式坦克" />
+                <div className="flex justify-center text-[#484f58]">↓</div>
+                <input type="text" className="w-full bg-[#0d1117] border border-[#30363d] rounded px-3 py-2 text-xs" placeholder="终点: 北方工业" />
+                <button className="w-full bg-blue-600 text-white font-bold py-2 rounded text-xs mt-2">计算最短路径</button>
+             </div>
+          </div>
+        )}
 
-           <g transform="translate(250, 550)" className="cursor-pointer group">
-              <circle r="22" className="fill-white dark:fill-[#161b22] stroke-[#d0d7de] dark:stroke-[#30363d]" strokeWidth="2" />
-              <text y="40" textAnchor="middle" className="text-[10px] font-medium fill-[#57606a] dark:fill-[#8b949e]">高超音速滑翔飞行器</text>
-           </g>
+        {/* Temporal Evolution Slider Overlay */}
+        {mode === 'time' && (
+          <div className="absolute bottom-6 left-1/2 -translate-x-1/2 z-30 bg-[#1c2128] border border-[#30363d] p-6 rounded-2xl shadow-2xl w-[600px] animate-in slide-in-from-bottom-4">
+             <div className="flex justify-between items-center mb-4">
+                <h4 className="text-xs font-bold">装备谱系时序演进 (2010 - 2024)</h4>
+                <span className="text-blue-500 font-mono text-sm">2021-06-15</span>
+             </div>
+             <input type="range" className="w-full accent-blue-600" min="0" max="100" defaultValue="75" />
+             <div className="flex justify-between text-[9px] text-[#8b949e] mt-2 font-mono">
+                <span>PROJECT_INIT</span>
+                <span>PROTOTYPE</span>
+                <span>FIELD_TEST</span>
+                <span>IN_SERVICE</span>
+             </div>
+          </div>
+        )}
 
-           <g transform="translate(700, 350)" className="cursor-pointer group">
-              <circle r="22" className="fill-white dark:fill-[#161b22] stroke-[#d0d7de] dark:stroke-[#30363d]" strokeWidth="2" />
-              <text y="40" textAnchor="middle" className="text-[10px] font-medium fill-[#57606a] dark:fill-[#8b949e]">04 号后勤枢纽</text>
+        <svg width="100%" height="100%" className="relative cursor-move">
+           <g transform="translate(400, 300)">
+              {/* Connecting lines */}
+              <line x1="0" y1="0" x2="200" y2="-100" className="stroke-[#30363d] stroke-2" strokeDasharray="4 2" />
+              <line x1="0" y1="0" x2="180" y2="120" className="stroke-[#30363d] stroke-2" />
+              
+              {/* Central Node */}
+              <circle r="45" className="fill-[#0366d6] dark:fill-[#1f6feb] shadow-[0_0_20px_rgba(31,111,235,0.4)] cursor-pointer" />
+              <text y="5" textAnchor="middle" className="text-xs font-bold fill-white pointer-events-none">15式轻型坦克</text>
+              
+              {/* Related Nodes */}
+              <g transform="translate(200, -100)">
+                 <circle r="30" className="fill-[#1c2128] stroke-[#30363d] stroke-2" />
+                 <text y="5" textAnchor="middle" className="text-[10px] fill-[#8b949e]">北方工业</text>
+              </g>
+              <g transform="translate(180, 120)">
+                 <circle r="35" className="fill-[#1c2128] stroke-[#30363d] stroke-2" />
+                 <text y="5" textAnchor="middle" className="text-[10px] fill-[#8b949e]">先进动力系统</text>
+              </g>
            </g>
         </svg>
 
-        {/* 悬浮实体详情面板 */}
-        <div className="absolute top-6 right-6 w-72 bg-white dark:bg-[#161b22] border border-[#d0d7de] dark:border-[#30363d] rounded-md shadow-lg dark:shadow-2xl p-5 transition-colors duration-200">
-           <div className="flex items-center gap-3 mb-5 border-b border-[#f0f2f4] dark:border-[#30363d] pb-3">
-              <div className="bg-[#f6f8fa] dark:bg-[#0d1117] p-2 rounded-md border border-[#d0d7de] dark:border-[#30363d] text-[#0366d6] dark:text-[#58a6ff]">
-                <Icons.Database />
-              </div>
-              <h3 className="font-bold text-sm text-[#24292f] dark:text-[#f0f6fc]">实体情报详情</h3>
-           </div>
-           
-           <div className="space-y-5">
-              <div>
-                <label className="text-[10px] uppercase font-black text-[#57606a] dark:text-[#8b949e] tracking-widest block mb-1">规范名称</label>
-                <p className="text-sm font-bold text-[#24292f] dark:text-[#c9d1d9]">东风-17 (DF-17)</p>
-              </div>
-              <div>
-                <label className="text-[10px] uppercase font-black text-[#57606a] dark:text-[#8b949e] tracking-widest block mb-1">涉密等级</label>
-                <span className="text-[10px] font-bold text-[#735c0f] dark:text-[#d29922] bg-[#fff8c5] dark:bg-[rgba(187,128,9,0.15)] border border-[#d4a72c]/30 dark:border-[rgba(187,128,9,0.4)] px-2 py-1 rounded-md">机密 (SECRET)</span>
-              </div>
-              <div>
-                <label className="text-[10px] uppercase font-black text-[#57606a] dark:text-[#8b949e] tracking-widest block mb-1">关联关系 (5)</label>
-                <ul className="text-xs space-y-2 mt-2">
-                  <li className="flex justify-between items-center bg-[#f6f8fa] dark:bg-[#0d1117] p-1.5 rounded border border-[#d0d7de]/50 dark:border-[#30363d]">
-                    <span className="text-[#57606a] dark:text-[#8b949e]">部署载荷:</span> 
-                    <span className="text-[#0366d6] dark:text-[#58a6ff] font-bold">HGV-202</span>
-                  </li>
-                  <li className="flex justify-between items-center bg-[#f6f8fa] dark:bg-[#0d1117] p-1.5 rounded border border-[#d0d7de]/50 dark:border-[#30363d]">
-                    <span className="text-[#57606a] dark:text-[#8b949e]">指挥链:</span> 
-                    <span className="text-[#0366d6] dark:text-[#58a6ff] font-bold">火箭军某部</span>
-                  </li>
-                </ul>
-              </div>
-              <button className="w-full py-2 text-xs font-bold bg-[#24292f] dark:bg-[#21262d] text-white dark:text-[#c9d1d9] border border-[#d0d7de] dark:border-[#30363d] rounded-md hover:bg-[#1b1f23] dark:hover:bg-[#30363d] transition-colors shadow-sm">
-                分析邻域拓扑
-              </button>
-           </div>
-        </div>
+        {/* Right Entity Panel */}
+        {selectedEntity && (
+          <div className="absolute top-6 right-6 w-80 bg-white dark:bg-[#1c2128] border border-[#d0d7de] dark:border-[#30363d] rounded-xl shadow-2xl p-0 overflow-hidden animate-in fade-in slide-in-from-right-4">
+             <div className="p-4 bg-[#f6f8fa] dark:bg-[#161b22] border-b border-[#d0d7de] dark:border-[#30363d] flex justify-between items-center">
+                <div className="flex items-center gap-3">
+                  <span className="text-lg">🛡️</span>
+                  <h3 className="font-bold text-sm">实体画像: {selectedEntity}</h3>
+                </div>
+                <button onClick={() => setSelectedEntity(null)} className="text-[#8b949e]">✕</button>
+             </div>
+             
+             <div className="p-5 space-y-4 max-h-[70vh] overflow-y-auto">
+                <div className="w-full h-40 bg-[#0d1117] rounded-lg overflow-hidden relative border border-[#30363d]">
+                   <div className="absolute inset-0 flex items-center justify-center text-[#484f58] font-bold text-xs italic text-center p-4">
+                      [ 装备实体三维预览 / 实景图片 ]<br/>
+                      <span className="text-[9px] font-normal mt-2">点击启用 WebGL 加速查看器</span>
+                   </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-3">
+                   <div className="bg-[#f6f8fa] dark:bg-[#0d1117] p-2 rounded border border-[#d0d7de]/50 dark:border-[#30363d]">
+                      <p className="text-[9px] font-black text-[#57606a] dark:text-[#8b949e] uppercase">研制单位</p>
+                      <p className="text-xs font-bold">北方工业</p>
+                   </div>
+                   <div className="bg-[#f6f8fa] dark:bg-[#0d1117] p-2 rounded border border-[#d0d7de]/50 dark:border-[#30363d]">
+                      <p className="text-[9px] font-black text-[#57606a] dark:text-[#8b949e] uppercase">密级</p>
+                      <span className="text-[9px] font-bold text-[#735c0f] dark:text-[#d29922] bg-[#fff8c5] dark:bg-yellow-900/20 px-1.5 py-0.5 rounded">机密级</span>
+                   </div>
+                </div>
+
+                <div>
+                  <p className="text-[10px] font-black text-[#57606a] dark:text-[#8b949e] uppercase tracking-widest mb-2">多跳关联关系</p>
+                  <div className="space-y-2">
+                     {[
+                       { rel: '动力系统', target: '先进涡轮发动机', type: 'COMPONENTS' },
+                       { rel: '火力系统', target: '105mm 膛线炮', type: 'ARMAMENT' },
+                       { rel: '防护系统', target: '复合附加装甲', type: 'DEFENSE' },
+                     ].map((item, i) => (
+                       <div key={i} className="flex items-center justify-between text-xs p-2 hover:bg-[#f6f8fa] dark:hover:bg-[#1c2128] rounded border border-transparent hover:border-[#d0d7de] dark:hover:border-[#30363d] transition-colors cursor-pointer group">
+                          <span className="text-[#57606a] dark:text-[#8b949e]">{item.rel}</span>
+                          <span className="text-[#0366d6] dark:text-[#58a6ff] font-bold group-hover:underline">{item.target}</span>
+                       </div>
+                     ))}
+                  </div>
+                </div>
+
+                <button className="w-full py-2 bg-[#21262d] text-[#c9d1d9] border border-[#30363d] rounded-md text-xs font-bold hover:bg-[#30363d] transition-colors">
+                  展开所有时序事件
+                </button>
+             </div>
+          </div>
+        )}
       </div>
     </div>
   );

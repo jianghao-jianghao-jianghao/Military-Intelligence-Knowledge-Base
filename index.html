@@ -1,10 +1,10 @@
 
 <!DOCTYPE html>
-<html lang="zh-CN">
+<html lang="zh-CN" class="dark">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>军工知识库 - 高安全战术智能平台</title>
+    <title>兵工武器知识库 - 装备智能研制平台</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
       tailwind.config = {
@@ -39,47 +39,27 @@
             font-family: 'Inter', 'Noto Sans SC', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
             -webkit-font-smoothing: antialiased;
         }
-        .font-mono {
-            font-family: 'JetBrains Mono', monospace;
-        }
-        ::-webkit-scrollbar {
-            width: 8px;
-            height: 8px;
-        }
-        ::-webkit-scrollbar-track {
-            background: transparent;
-        }
-        .dark ::-webkit-scrollbar-track {
-            background: #0d1117;
-        }
-        ::-webkit-scrollbar-thumb {
-            background: #d0d7de;
-            border-radius: 10px;
-        }
-        .dark ::-webkit-scrollbar-thumb {
-            background: #30363d;
-        }
-        ::-webkit-scrollbar-thumb:hover {
-            background: #afb8c1;
-        }
-        .dark ::-webkit-scrollbar-thumb:hover {
-            background: #484f58;
-        }
+        .dark body { background-color: #0d1117; color: #c9d1d9; }
+        .font-mono { font-family: 'JetBrains Mono', monospace; }
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: #d0d7de; border-radius: 10px; }
+        .dark ::-webkit-scrollbar-thumb { background: #30363d; }
     </style>
 <script type="importmap">
 {
   "imports": {
     "@google/genai": "https://esm.sh/@google/genai@^1.38.0",
     "react": "https://esm.sh/react@19.0.0",
-    "react/": "https://esm.sh/react@19.0.0/",
     "react-dom": "https://esm.sh/react-dom@19.0.0",
     "react-dom/client": "https://esm.sh/react-dom@19.0.0/client",
-    "react-dom/": "https://esm.sh/react-dom@^19.2.4/"
+    "react-dom/": "https://esm.sh/react-dom@^19.2.4/",
+    "react/": "https://esm.sh/react@^19.2.4/"
   }
 }
 </script>
 </head>
-<body class="bg-white dark:bg-[#0d1117] text-[#24292f] dark:text-[#c9d1d9] transition-colors duration-200">
+<body class="transition-colors duration-200">
     <div id="root"></div>
     <script type="module" src="./index.tsx"></script>
 </body>

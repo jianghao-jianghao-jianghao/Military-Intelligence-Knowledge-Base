@@ -1,7 +1,8 @@
 
 import React from 'react';
-import { Provenance } from '../types';
-import { COLORS } from '../constants';
+// Added .ts extension and fixed Provenance import error
+import { Provenance } from '../types.ts';
+import { COLORS } from '../constants.tsx';
 
 interface EvidencePanelProps {
   provenance: Provenance[];

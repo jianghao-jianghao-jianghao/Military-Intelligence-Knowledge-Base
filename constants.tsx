@@ -1,6 +1,6 @@
 
 import React from 'react';
-import { ClearanceLevel, KnowledgeBase, WeaponDocument, AuditLog, SensitiveWordPolicy, Permission, Department, Role, User, UserRole } from './types.ts';
+import { ClearanceLevel, KnowledgeBase, WeaponDocument, AuditLog, SensitiveWordPolicy, Permission, Department, Role, User, UserRole, FAQPair, AuditStatus } from './types.ts';
 
 export const COLORS = {
   bg: '#0d1117',
@@ -13,6 +13,27 @@ export const COLORS = {
   border: '#30363d',
   focus: 'rgba(31,111,235,0.25)'
 };
+
+export const MOCK_FAQS: FAQPair[] = [
+  {
+    id: 'faq-1',
+    question: '15式轻型坦克的高原适应性如何？',
+    answer: '15式轻型坦克采用专门设计的高原型动力系统，能够在海拔4500米以上地区保持额定功率的85%以上。',
+    category: '装备参数',
+    status: AuditStatus.APPROVED,
+    clearance: ClearanceLevel.INTERNAL,
+    lastUpdated: '2024-01-10'
+  },
+  {
+    id: 'faq-2',
+    question: '如何申请机密级文档的物理调阅？',
+    answer: '需在治理中心提交“调阅申请单”，由所属部门主管和机密审计员双重审批后，至机要室凭证调阅。',
+    category: '流程指南',
+    status: AuditStatus.APPROVED,
+    clearance: ClearanceLevel.INTERNAL,
+    lastUpdated: '2023-11-20'
+  }
+];
 
 export const MOCK_DEPARTMENTS: Department[] = [
   { id: 'd1', name: '动力系统研制中心', code: 'POWER-RD' },

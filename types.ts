@@ -29,6 +29,17 @@ export enum Permission {
   MANAGE_SECURITY = '安全策略下发'
 }
 
+export interface FAQPair {
+  id: string;
+  question: string;
+  answer: string;
+  category: string;
+  status: AuditStatus;
+  clearance: ClearanceLevel;
+  lastUpdated: string;
+  suggestedBy?: string;
+}
+
 export interface Department {
   id: string;
   name: string;
@@ -54,37 +65,68 @@ export interface User {
   status: 'ACTIVE' | 'INACTIVE' | 'LOCKED';
 }
 
-export interface RegistrationRequest {
-  id: string;
-  fullName: string;
-  username: string;
-  departmentId: string;
-  intendedClearance: ClearanceLevel;
-  justification: string;
-  status: AuditStatus;
-  requestDate: string;
-}
-
 export interface KnowledgeBase {
   id: string;
   name: string;
   description: string;
   clearance: ClearanceLevel;
   authorized_departments: string[];
-  authorized_roles: string[]; // Role IDs
-  authorized_users: string[]; // User IDs
+  authorized_roles: string[]; 
+  authorized_users: string[]; 
   owner_id: string;
   created_at: string;
 }
 
-export interface WeaponDocument {
-  id: string;
-  kb_id: string;
+export interface RetrievalConfig {
+  selected_kb_ids: string[];
+  strategy: 'hybrid' | 'vector' | 'keyword';
+  tiers: {
+    faq: boolean;
+    graph: boolean;
+    docs: boolean;
+    llm: boolean;
+  };
+  enhanced: {
+    queryRewrite: boolean;
+    hyde: boolean;
+    stepback: boolean;
+  };
+}
+
+export interface ReasoningStep {
   title: string;
-  type: string;
-  clearance: ClearanceLevel;
-  last_updated: string;
-  content_preview?: string;
+  content: string;
+  type: 'search' | 'reason' | 'verify' | 'security_check' | 'rewrite' | 'hyde';
+}
+
+export interface Provenance {
+  sentence_id: string;
+  source_name: string;
+  text: string;
+  media_url?: string;
+  media_type?: 'image' | 'video' | 'audio';
+  source_uri?: string;
+  start?: number;
+  end?: number;
+  score: number;
+  security_level: ClearanceLevel;
+}
+
+export interface QAResponse {
+  id?: string;
+  answer: string;
+  media?: {
+    type: 'image' | 'video' | 'audio';
+    url: string;
+    caption: string;
+  }[];
+  thought_process: ReasoningStep[];
+  provenance: Provenance[];
+  confidence: number;
+  security_badge: ClearanceLevel;
+  is_desensitized: boolean;
+  timestamp?: string;
+  tier_hit?: 'FAQ' | 'GRAPH' | 'DOCS' | 'LLM';
 }
 
 export interface AuditLog {
@@ -105,42 +147,25 @@ export interface SensitiveWordPolicy {
   is_active: boolean;
 }
 
-export interface RetrievalConfig {
-  selected_kb_ids: string[];
-  strategy: 'hybrid' | 'vector' | 'keyword';
-  enhanced: {
-    queryRewrite: boolean;
-    hyde: boolean;
-    stepback: boolean;
-  };
-}
-
-export interface ReasoningStep {
+// Added WeaponDocument interface to resolve export error
+export interface WeaponDocument {
+  id: string;
+  kb_id: string;
   title: string;
-  content: string;
-  type: 'search' | 'reason' | 'verify' | 'security_check';
+  type: string;
+  clearance: ClearanceLevel;
+  last_updated: string;
+  content_preview?: string;
 }
 
-export interface Provenance {
-  sentence_id: string;
-  source_name: string;
-  text: string;
-  media_url?: string;
-  media_type?: 'image' | 'video' | 'audio';
-  source_uri?: string;
-  start?: number;
-  end?: number;
-  score: number;
-  security_level: ClearanceLevel;
-}
-
-export interface QAResponse {
-  id?: string;
-  answer: string;
-  thought_process: ReasoningStep[];
-  provenance: Provenance[];
-  confidence: number;
-  security_badge: ClearanceLevel;
-  is_desensitized: boolean;
-  timestamp?: string;
+// Added RegistrationRequest interface to resolve export error
+export interface RegistrationRequest {
+  id: string;
+  fullName: string;
+  username: string;
+  departmentId: string;
+  intendedClearance: ClearanceLevel;
+  justification: string;
+  status: AuditStatus;
+  requestDate: string;
 }

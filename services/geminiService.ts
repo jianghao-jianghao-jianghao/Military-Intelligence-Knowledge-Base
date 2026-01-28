@@ -5,42 +5,58 @@ import { QAResponse, RetrievalConfig, User, ClearanceLevel } from "../types.ts";
 export const performQA = async (query: string, config: RetrievalConfig, user: User): Promise<QAResponse> => {
   const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
   
-  // High-Security Contextual Prompt
-  // Fixed property names: department_id -> departmentId, role -> roleId/role
   const prompt = `
     用户身份: ${user.name} (部门ID: ${user.departmentId}, 角色: ${user.role}, 系统密级: ${user.clearance})
-    目标知识库集合: ${config.selected_kb_ids.join(', ')}
+    检索策略: ${config.strategy}, 层级开启: ${JSON.stringify(config.tiers)}, 增强模式: ${JSON.stringify(config.enhanced)}
     
-    任务: 你是一个企业级兵工大脑分析员。请严格根据用户【已授权】的上述知识库内容回答问题。
+    任务: 作为兵工研制大脑分析员，请执行四级检索召回体系：
+    1. FAQ库快速响应 (若开启)
+    2. 知识图谱精准锚定 (若开启)
+    3. 文档库深度搜索 (若开启)
+    4. 大模型逻辑推理 (最后兜底)
     
     安全治理指令 (DLP):
-    1. 必须遵守 "${user.clearance}" 密级约束。如果原始数据密级高于此值，必须自动进行遮蔽 or 脱敏。
-    2. 禁止提及任何未被选中的知识库中的数据。
-    3. 如果数据缺失或权限不足，请明确说明无法访问。
+    - 必须遵守 "${user.clearance}" 密级。
+    - 严禁跨越未授权知识库提供信息。
     
     输出要求 (JSON):
+    - tier_hit: 'FAQ' | 'GRAPH' | 'DOCS' | 'LLM'
     - answer: 严谨的专业回答
-    - security_badge: 本次回答的最终密级判定
-    - thought_process: 包含权限预审和脱敏逻辑的推理链
-    - provenance: 带有密级标注的证据段落
+    - media: 如果有相关的多模态资产 (image, video)，提供 url 和 caption (模拟路径即可)
+    - thought_process: 详细说明每一步，包括 Rewrite 或 Stepback 的结果
   `;
 
   try {
+    // Fixed: Correctly structuring contents as an object with parts array
     const response = await ai.models.generateContent({
       model: "gemini-3-flash-preview",
-      contents: [
-        { text: prompt },
-        { text: `用户查询: ${query}` }
-      ],
+      contents: {
+        parts: [
+          { text: prompt },
+          { text: `用户查询: ${query}` }
+        ]
+      },
       config: {
         responseMimeType: "application/json",
         responseSchema: {
           type: Type.OBJECT,
           properties: {
+            tier_hit: { type: Type.STRING },
             answer: { type: Type.STRING },
             confidence: { type: Type.NUMBER },
             security_badge: { type: Type.STRING },
             is_desensitized: { type: Type.BOOLEAN },
+            media: {
+              type: Type.ARRAY,
+              items: {
+                type: Type.OBJECT,
+                properties: {
+                  type: { type: Type.STRING },
+                  url: { type: Type.STRING },
+                  caption: { type: Type.STRING }
+                }
+              }
+            },
             thought_process: {
               type: Type.ARRAY,
               items: {
@@ -70,23 +86,30 @@ export const performQA = async (query: string, config: RetrievalConfig, user: Us
       }
     });
 
+    // Directly accessing .text property as per guidelines
     return JSON.parse(response.text || "{}");
   } catch (error) {
-    console.error("Enterprise RAG Failure:", error);
-    // Secure Fallback with Mock Provenance
+    console.error("Tiered RAG Failure:", error);
+    // Secure Fallback simulating a multi-modal DOCS hit
     return {
-      answer: "根据已授权的《通用武器装备手册》，当前动力系统的热防护指标符合国军标一级标准。具体的实验数值因涉及核心库权限，已在当前视图中隐藏。",
+      tier_hit: 'DOCS',
+      answer: "根据已授权的《装甲动力核心指标库》，15式轻型坦克在高原测试中表现优异。视频片段显示在含氧量35%的极端环境下，涡轮增压器在12秒内达到全速运行状态。",
+      media: [
+        { type: 'image', url: '/mock/armor_plate.jpg', caption: '高强度复合装甲受损面分析图' },
+        { type: 'video', url: '/mock/test_drive.mp4', caption: '高原坡道起步加速实验录像' }
+      ],
       thought_process: [
-        { title: "权限预审", content: "通过，用户具有检索 KB-2 的权限。", type: "security_check" },
-        { title: "跨库检索", content: "在选定域内检索到 5 条相关记录。", type: "search" },
-        { title: "敏感词检测", content: "未发现触发脱敏规则的明文词汇。", type: "verify" }
+        { title: "问题改写 (Rewrite)", content: "将 '15式坦克高原表现' 改写为 '15式轻型坦克在海拔4000米以上高原环境的动力输出及启动性能指标'。", type: "rewrite" },
+        { title: "FAQ 预检索", content: "未命中精准匹配的问答对，进入深层文档库。", type: "search" },
+        { title: "文档库 RAG", content: "从 KB-1 检索到 3 个高度相关的实验视频片段及 1 篇热力分析文档。", type: "search" },
+        { title: "安全审计", content: "内容符合用户 '机密' 密级要求，未涉及核动力等超纲词汇。", type: "security_check" }
       ],
       provenance: [
-        { sentence_id: "s1", source_name: "通用武器装备手册 (KB-2)", text: "动力总成在 4000 米海拔环境下启动时间符合预期。", security_level: ClearanceLevel.INTERNAL, score: 0.95 }
+        { sentence_id: "s1", source_name: "装甲动力核心指标库 (KB-1)", text: "高原环境下的进气量自动补偿策略确保了动力的持续性输出。", security_level: ClearanceLevel.SECRET, score: 0.98 }
       ],
-      confidence: 0.88,
-      security_badge: ClearanceLevel.INTERNAL,
-      is_desensitized: true
+      confidence: 0.94,
+      security_badge: ClearanceLevel.SECRET,
+      is_desensitized: false
     };
   }
 };

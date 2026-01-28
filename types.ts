@@ -26,7 +26,8 @@ export enum Permission {
   MANAGE_ROLES = '角色授权管理',
   MANAGE_USERS = '人员准入管理',
   VIEW_AUDIT = '审计日志查看',
-  MANAGE_SECURITY = '安全策略下发'
+  MANAGE_SECURITY = '安全策略下发',
+  DOC_PROCESS = '智能文档处理'
 }
 
 export interface Department {
@@ -166,4 +167,23 @@ export interface QAResponse {
   is_desensitized: boolean;
   timestamp?: string;
   tier_hit?: 'FAQ' | 'GRAPH' | 'DOCS' | 'LLM';
+  related_questions?: string[]; // Smart suggestions
+}
+
+export interface Message {
+  id: string;
+  role: 'user' | 'assistant';
+  content: string; // User query or Assistant answer text
+  quote?: string; // For "Contextual Citation"
+  timestamp: string;
+  // Extra data for assistant messages to render complex UI
+  qaResponse?: QAResponse; 
+}
+
+export interface Conversation {
+  id: string;
+  title: string;
+  messages: Message[];
+  createdAt: string;
+  updatedAt: string;
 }

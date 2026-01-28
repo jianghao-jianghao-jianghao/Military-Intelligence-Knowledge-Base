@@ -5,6 +5,7 @@ import QAView from './components/QAView.tsx';
 import KnowledgeGraph from './components/KnowledgeGraph.tsx';
 import AdminView from './components/AdminView.tsx';
 import AuthView from './components/AuthView.tsx';
+import DocProcessingView from './components/DocProcessingView.tsx';
 import { Icons, MOCK_KBS, MOCK_DOCS } from './constants.tsx';
 import { User, ClearanceLevel, WeaponDocument } from './types.ts';
 
@@ -39,6 +40,8 @@ const App: React.FC = () => {
         return <KnowledgeGraph />;
       case 'admin':
         return <AdminView />;
+      case 'doc_proc':
+        return <DocProcessingView />;
       case 'docs':
         // Fixed property names: authorized_roles exists now, department_id -> departmentId
         const authorizedKBs = MOCK_KBS.filter(kb => 

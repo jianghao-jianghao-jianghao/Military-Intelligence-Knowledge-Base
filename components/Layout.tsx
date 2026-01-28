@@ -21,6 +21,9 @@ const Layout: React.FC<LayoutProps> = ({ children, activeTab, onTabChange, theme
     { id: 'qa', label: '安全智能问答', icon: <Icons.Search />, roles: [UserRole.USER, UserRole.KB_MANAGER, UserRole.SUPER_ADMIN] },
     { id: 'kg', label: '装备知识图谱', icon: <Icons.Network />, roles: [UserRole.USER, UserRole.KB_MANAGER, UserRole.SUPER_ADMIN] },
     { id: 'docs', label: '武器技术档案', icon: <Icons.File />, roles: [UserRole.USER, UserRole.KB_MANAGER, UserRole.SUPER_ADMIN] },
+    { id: 'doc_proc', label: '智能文档工坊', icon: (
+      <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor"><path d="M13.488 2.513a1.75 1.75 0 0 0-2.475 0L6.75 6.774a2.75 2.75 0 0 0-.596.892l-.848 2.047a.75.75 0 0 0 .98.98l2.047-.848a2.75 2.75 0 0 0 .892-.596l4.261-4.262a1.75 1.75 0 0 0 0-2.474Z"></path><path d="M4.75 3.5c-.69 0-1.25.56-1.25 1.25v6.5c0 .69.56 1.25 1.25 1.25h6.5c.69 0 1.25-.56 1.25-1.25V9A.75.75 0 0 1 14 9v2.25A2.75 2.75 0 0 1 11.25 14h-6.5A2.75 2.75 0 0 1 2 11.25v-6.5A2.75 2.75 0 0 1 4.75 2H7a.75.75 0 0 1 0 1.5H4.75Z"></path></svg>
+    ), roles: [UserRole.USER, UserRole.KB_MANAGER, UserRole.SUPER_ADMIN] },
     { id: 'admin', label: '后台管理中心', icon: <Icons.Lock />, roles: [UserRole.KB_MANAGER, UserRole.SUPER_ADMIN] },
   ];
 
@@ -94,7 +97,7 @@ const Layout: React.FC<LayoutProps> = ({ children, activeTab, onTabChange, theme
              </button>
              <div className="flex items-center gap-3">
                <span className="text-sm font-bold tracking-tight">
-                 {activeTab === 'qa' ? '安全智能检索' : activeTab === 'admin' ? '研制治理后台' : '武器数据服务'}
+                 {activeTab === 'qa' ? '安全智能检索' : activeTab === 'admin' ? '研制治理后台' : activeTab === 'doc_proc' ? '智能文档工坊' : '武器数据服务'}
                </span>
                <div className="h-4 w-px bg-[#d0d7de] dark:bg-[#30363d]"></div>
                <div className="flex items-center gap-1.5 bg-green-100 dark:bg-green-900/20 px-2 py-0.5 rounded border border-green-500/20">

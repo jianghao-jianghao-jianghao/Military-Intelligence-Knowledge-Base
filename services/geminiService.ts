@@ -20,6 +20,7 @@ export const performQA = async (query: string, config: RetrievalConfig, user: Us
     - 严禁跨越未授权知识库提供信息。
     
     输出要求 (JSON):
+    - 只返回纯 JSON 对象，不要包含 markdown 代码块 (如 \`\`\`json)。
     - tier_hit: 'FAQ' | 'GRAPH' | 'DOCS' | 'LLM'
     - answer: 严谨的专业回答
     - media: 如果有相关的多模态资产 (image, video)，提供 url 和 caption (模拟路径即可)
@@ -27,15 +28,12 @@ export const performQA = async (query: string, config: RetrievalConfig, user: Us
   `;
 
   try {
-    // Fixed: Correctly structuring contents as an object with parts array
     const response = await ai.models.generateContent({
       model: "gemini-3-flash-preview",
-      contents: {
-        parts: [
-          { text: prompt },
-          { text: `用户查询: ${query}` }
-        ]
-      },
+      contents: [
+        { text: prompt },
+        { text: `用户查询: ${query}` }
+      ],
       config: {
         responseMimeType: "application/json",
         responseSchema: {
@@ -86,8 +84,13 @@ export const performQA = async (query: string, config: RetrievalConfig, user: Us
       }
     });
 
-    // Directly accessing .text property as per guidelines
-    return JSON.parse(response.text || "{}");
+    const rawText = response.text || "{}";
+    // Aggressively clean markdown blocks and potential incomplete truncations if possible, 
+    // though JSON.parse will still fail on truncation.
+    const cleanText = rawText.replace(/```json\n?|\n?```/g, "").trim();
+    
+    return JSON.parse(cleanText);
+
   } catch (error) {
     console.error("Tiered RAG Failure:", error);
     // Secure Fallback simulating a multi-modal DOCS hit
@@ -99,10 +102,8 @@ export const performQA = async (query: string, config: RetrievalConfig, user: Us
         { type: 'video', url: '/mock/test_drive.mp4', caption: '高原坡道起步加速实验录像' }
       ],
       thought_process: [
-        { title: "问题改写 (Rewrite)", content: "将 '15式坦克高原表现' 改写为 '15式轻型坦克在海拔4000米以上高原环境的动力输出及启动性能指标'。", type: "rewrite" },
-        { title: "FAQ 预检索", content: "未命中精准匹配的问答对，进入深层文档库。", type: "search" },
-        { title: "文档库 RAG", content: "从 KB-1 检索到 3 个高度相关的实验视频片段及 1 篇热力分析文档。", type: "search" },
-        { title: "安全审计", content: "内容符合用户 '机密' 密级要求，未涉及核动力等超纲词汇。", type: "security_check" }
+        { title: "系统错误恢复 (Recovery)", content: "AI 模型服务连接不稳定，系统已自动降级为本地规则检索模式。", type: "security_check" },
+        { title: "文档库 RAG", content: "从 KB-1 检索到 3 个高度相关的实验视频片段及 1 篇热力分析文档。", type: "search" }
       ],
       provenance: [
         { sentence_id: "s1", source_name: "装甲动力核心指标库 (KB-1)", text: "高原环境下的进气量自动补偿策略确保了动力的持续性输出。", security_level: ClearanceLevel.SECRET, score: 0.98 }

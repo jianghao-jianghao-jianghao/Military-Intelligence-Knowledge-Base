@@ -48,10 +48,15 @@ const QAView: React.FC<QAViewProps> = ({ currentUser }) => {
 
   const handleSearch = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!query.trim() || retrievalConfig.selected_kb_ids.length === 0) return;
+    if (!query.trim()) return;
+    if (retrievalConfig.selected_kb_ids.length === 0) {
+      alert("请至少选择一个知识库进行检索");
+      return;
+    }
 
     setIsSearching(true);
     setResponse(null);
+    setCurrentStep(0);
     
     // Simulate tiered search delay
     for (let i = 1; i <= 5; i++) {
@@ -61,12 +66,17 @@ const QAView: React.FC<QAViewProps> = ({ currentUser }) => {
 
     try {
       const res = await performQA(query, retrievalConfig, currentUser);
+      if (!res || !res.answer) {
+         throw new Error("Empty response received");
+      }
       setResponse(res);
     } catch (err) {
-      console.error(err);
+      console.error("Search execution failed:", err);
+      // Even if it fails, set a visual fallback state if performQA didn't handle it
+      // Note: performQA currently returns a fallback object on error, so this block
+      // handles truly unexpected errors.
     } finally {
       setIsSearching(false);
-      setCurrentStep(0);
     }
   };
 
@@ -227,7 +237,9 @@ const QAView: React.FC<QAViewProps> = ({ currentUser }) => {
           
           {!response && !isSearching && (
             <div className="h-full flex flex-col items-center justify-center opacity-30 select-none">
-               <Icons.Search />
+               <div className="w-24 h-24 mb-6 text-[#d0d7de] dark:text-[#30363d]">
+                  <Icons.Search />
+               </div>
                <p className="font-bold text-base tracking-[0.2em] text-[#8b949e] mt-4 uppercase">Advanced Military Retrieval</p>
                <div className="grid grid-cols-2 gap-4 mt-12 w-full max-w-xl">
                   {['15式坦克涉密试验数据', '某型导弹火控逻辑分析', '动力系统故障排查手册', '研制基地准入管理流程'].map(tag => (

@@ -2,12 +2,39 @@
 import React, { useState } from 'react';
 import { Icons } from '../constants.tsx';
 
+// Mock data for graph nodes to make interaction easier
+const NODES = [
+  { id: 'n1', x: 400, y: 300, r: 45, label: '15式轻型坦克', type: 'CORE', clearance: '机密' },
+  { id: 'n2', x: 600, y: 200, r: 30, label: '北方工业', type: 'ORG', clearance: '公开' },
+  { id: 'n3', x: 580, y: 420, r: 35, label: '先进动力系统', type: 'SYSTEM', clearance: '机密' }
+];
+
+const LINES = [
+  { from: 'n1', to: 'n2', dashed: true },
+  { from: 'n1', to: 'n3', dashed: false }
+];
+
 const KnowledgeGraph: React.FC = () => {
   const [mode, setMode] = useState<'normal' | 'path' | 'time'>('normal');
   const [selectedEntity, setSelectedEntity] = useState<string | null>('15式轻型坦克');
+  const [hoveredNode, setHoveredNode] = useState<any | null>(null);
+  const [mousePos, setMousePos] = useState({ x: 0, y: 0 });
+
+  const handleNodeClick = (node: any) => {
+    setSelectedEntity(node.label);
+  };
+
+  const handleMouseMove = (e: React.MouseEvent) => {
+    // Get relative coordinates for tooltip
+    const rect = e.currentTarget.getBoundingClientRect();
+    setMousePos({
+      x: e.clientX - rect.left,
+      y: e.clientY - rect.top
+    });
+  };
 
   return (
-    <div className="h-full flex flex-col bg-white dark:bg-[#0d1117] transition-colors duration-200 overflow-hidden">
+    <div className="h-full flex flex-col bg-white dark:bg-[#0d1117] transition-colors duration-200 overflow-hidden" onMouseMove={handleMouseMove}>
       <div className="p-6 border-b border-[#d0d7de] dark:border-[#30363d] flex justify-between items-center bg-white dark:bg-[#0d1117] z-20">
         <div className="flex items-center gap-3">
            <h2 className="text-xl font-bold">装备本体图谱浏览器</h2>
@@ -39,7 +66,7 @@ const KnowledgeGraph: React.FC = () => {
           <div className="absolute top-6 left-6 z-30 bg-[#1c2128] border border-blue-500/50 p-4 rounded-xl shadow-2xl w-72 animate-in slide-in-from-left-4">
              <h4 className="text-xs font-black text-blue-500 uppercase tracking-widest mb-4">路径发现引擎 (Path-Finder)</h4>
              <div className="space-y-3">
-                <input type="text" className="w-full bg-[#0d1117] border border-[#30363d] rounded px-3 py-2 text-xs" placeholder="起点: 15式坦克" />
+                <input type="text" className="w-full bg-[#0d1117] border border-[#30363d] rounded px-3 py-2 text-xs" placeholder="起点: 15式坦克" defaultValue={selectedEntity || ''} />
                 <div className="flex justify-center text-[#484f58]">↓</div>
                 <input type="text" className="w-full bg-[#0d1117] border border-[#30363d] rounded px-3 py-2 text-xs" placeholder="终点: 北方工业" />
                 <button className="w-full bg-blue-600 text-white font-bold py-2 rounded text-xs mt-2">计算最短路径</button>
@@ -64,25 +91,55 @@ const KnowledgeGraph: React.FC = () => {
           </div>
         )}
 
+        {/* Floating Tooltip */}
+        {hoveredNode && (
+          <div 
+            className="absolute z-40 bg-black/80 backdrop-blur text-white p-2 rounded shadow-lg pointer-events-none transform -translate-y-full -translate-x-1/2 mt-[-10px]"
+            style={{ left: mousePos.x, top: mousePos.y }}
+          >
+            <div className="text-xs font-bold">{hoveredNode.label}</div>
+            <div className="flex gap-2 mt-1">
+               <span className="text-[9px] bg-blue-500/20 text-blue-300 px-1 rounded">{hoveredNode.type}</span>
+               <span className={`text-[9px] px-1 rounded ${hoveredNode.clearance === '机密' ? 'bg-red-500/20 text-red-300' : 'bg-green-500/20 text-green-300'}`}>
+                 {hoveredNode.clearance}
+               </span>
+            </div>
+          </div>
+        )}
+
         <svg width="100%" height="100%" className="relative cursor-move">
-           <g transform="translate(400, 300)">
-              {/* Connecting lines */}
-              <line x1="0" y1="0" x2="200" y2="-100" className="stroke-[#30363d] stroke-2" strokeDasharray="4 2" />
-              <line x1="0" y1="0" x2="180" y2="120" className="stroke-[#30363d] stroke-2" />
+           <g>
+              {LINES.map((line, i) => {
+                 const start = NODES.find(n => n.id === line.from)!;
+                 const end = NODES.find(n => n.id === line.to)!;
+                 return (
+                   <line 
+                     key={i}
+                     x1={start.x} y1={start.y} x2={end.x} y2={end.y} 
+                     className="stroke-[#30363d] stroke-2" 
+                     strokeDasharray={line.dashed ? "4 2" : undefined} 
+                   />
+                 );
+              })}
               
-              {/* Central Node */}
-              <circle r="45" className="fill-[#0366d6] dark:fill-[#1f6feb] shadow-[0_0_20px_rgba(31,111,235,0.4)] cursor-pointer" />
-              <text y="5" textAnchor="middle" className="text-xs font-bold fill-white pointer-events-none">15式轻型坦克</text>
-              
-              {/* Related Nodes */}
-              <g transform="translate(200, -100)">
-                 <circle r="30" className="fill-[#1c2128] stroke-[#30363d] stroke-2" />
-                 <text y="5" textAnchor="middle" className="text-[10px] fill-[#8b949e]">北方工业</text>
-              </g>
-              <g transform="translate(180, 120)">
-                 <circle r="35" className="fill-[#1c2128] stroke-[#30363d] stroke-2" />
-                 <text y="5" textAnchor="middle" className="text-[10px] fill-[#8b949e]">先进动力系统</text>
-              </g>
+              {NODES.map(node => (
+                <g 
+                  key={node.id} 
+                  transform={`translate(${node.x}, ${node.y})`}
+                  onClick={(e) => { e.stopPropagation(); handleNodeClick(node); }}
+                  onMouseEnter={() => setHoveredNode(node)}
+                  onMouseLeave={() => setHoveredNode(null)}
+                  className="cursor-pointer transition-all duration-200 hover:scale-110"
+                >
+                   <circle 
+                     r={node.r} 
+                     className={`${node.id === 'n1' ? 'fill-[#0366d6] dark:fill-[#1f6feb] shadow-[0_0_20px_rgba(31,111,235,0.4)]' : 'fill-[#1c2128]'} stroke-[#30363d] stroke-2`} 
+                   />
+                   <text y="5" textAnchor="middle" className={`text-xs font-bold pointer-events-none ${node.id === 'n1' ? 'fill-white' : 'fill-[#57606a] dark:fill-[#8b949e]'}`}>
+                     {node.label}
+                   </text>
+                </g>
+              ))}
            </g>
         </svg>
 
@@ -132,9 +189,20 @@ const KnowledgeGraph: React.FC = () => {
                   </div>
                 </div>
 
-                <button className="w-full py-2 bg-[#21262d] text-[#c9d1d9] border border-[#30363d] rounded-md text-xs font-bold hover:bg-[#30363d] transition-colors">
-                  展开所有时序事件
-                </button>
+                <div className="flex flex-col gap-2 mt-2">
+                  <button 
+                    onClick={() => setMode('path')}
+                    className="w-full py-2 bg-[#f6f8fa] dark:bg-[#21262d] text-[#24292f] dark:text-[#c9d1d9] border border-[#d0d7de] dark:border-[#30363d] rounded-md text-xs font-bold hover:bg-[#eaeef2] dark:hover:bg-[#30363d] transition-colors flex items-center justify-center gap-2"
+                  >
+                    <span>🔍</span> 以此为起点进行路径分析
+                  </button>
+                  <button 
+                    onClick={() => setMode('time')}
+                    className="w-full py-2 bg-[#f6f8fa] dark:bg-[#21262d] text-[#24292f] dark:text-[#c9d1d9] border border-[#d0d7de] dark:border-[#30363d] rounded-md text-xs font-bold hover:bg-[#eaeef2] dark:hover:bg-[#30363d] transition-colors flex items-center justify-center gap-2"
+                  >
+                    <span>🕒</span> 查看时序演进历史
+                  </button>
+                </div>
              </div>
           </div>
         )}

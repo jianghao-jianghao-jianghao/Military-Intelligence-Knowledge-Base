@@ -29,17 +29,6 @@ export enum Permission {
   MANAGE_SECURITY = '安全策略下发'
 }
 
-export interface FAQPair {
-  id: string;
-  question: string;
-  answer: string;
-  category: string;
-  status: AuditStatus;
-  clearance: ClearanceLevel;
-  lastUpdated: string;
-  suggestedBy?: string;
-}
-
 export interface Department {
   id: string;
   name: string;
@@ -65,16 +54,66 @@ export interface User {
   status: 'ACTIVE' | 'INACTIVE' | 'LOCKED';
 }
 
+export interface RegistrationRequest {
+  id: string;
+  fullName: string;
+  username: string;
+  departmentId: string;
+  intendedClearance: ClearanceLevel;
+  justification: string;
+  status: AuditStatus;
+  requestDate: string;
+}
+
 export interface KnowledgeBase {
   id: string;
   name: string;
   description: string;
   clearance: ClearanceLevel;
   authorized_departments: string[];
-  authorized_roles: string[]; 
-  authorized_users: string[]; 
+  authorized_roles: string[]; // Role IDs
+  authorized_users: string[]; // User IDs
   owner_id: string;
   created_at: string;
+}
+
+export interface WeaponDocument {
+  id: string;
+  kb_id: string;
+  title: string;
+  type: string;
+  clearance: ClearanceLevel;
+  last_updated: string;
+  content_preview?: string;
+}
+
+export interface AuditLog {
+  id: string;
+  timestamp: string;
+  userId: string;
+  userName: string;
+  action: string;
+  resource: string;
+  status: 'SUCCESS' | 'DENIED' | 'WARNING';
+}
+
+export interface SensitiveWordPolicy {
+  id: string;
+  word: string;
+  replacement: string;
+  severity: 'low' | 'high';
+  is_active: boolean;
+}
+
+export interface FAQPair {
+  id: string;
+  question: string;
+  answer: string;
+  category: string;
+  status: AuditStatus;
+  clearance: ClearanceLevel;
+  lastUpdated: string;
+  suggestedBy?: string;
 }
 
 export interface RetrievalConfig {
@@ -127,45 +166,4 @@ export interface QAResponse {
   is_desensitized: boolean;
   timestamp?: string;
   tier_hit?: 'FAQ' | 'GRAPH' | 'DOCS' | 'LLM';
-}
-
-export interface AuditLog {
-  id: string;
-  timestamp: string;
-  userId: string;
-  userName: string;
-  action: string;
-  resource: string;
-  status: 'SUCCESS' | 'DENIED' | 'WARNING';
-}
-
-export interface SensitiveWordPolicy {
-  id: string;
-  word: string;
-  replacement: string;
-  severity: 'low' | 'high';
-  is_active: boolean;
-}
-
-// Added WeaponDocument interface to resolve export error
-export interface WeaponDocument {
-  id: string;
-  kb_id: string;
-  title: string;
-  type: string;
-  clearance: ClearanceLevel;
-  last_updated: string;
-  content_preview?: string;
-}
-
-// Added RegistrationRequest interface to resolve export error
-export interface RegistrationRequest {
-  id: string;
-  fullName: string;
-  username: string;
-  departmentId: string;
-  intendedClearance: ClearanceLevel;
-  justification: string;
-  status: AuditStatus;
-  requestDate: string;
 }

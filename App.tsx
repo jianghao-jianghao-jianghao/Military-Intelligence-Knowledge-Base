@@ -40,9 +40,9 @@ const App: React.FC = () => {
       case 'admin':
         return <AdminView />;
       case 'docs':
-        // Fixed: Use roleId to correctly match authorized_roles strings
+        // Fixed property names: authorized_roles exists now, department_id -> departmentId
         const authorizedKBs = MOCK_KBS.filter(kb => 
-          kb.authorized_roles.includes(currentUser.roleId) || 
+          kb.authorized_roles.includes(currentUser.role) || 
           kb.authorized_departments.includes(currentUser.departmentId)
         );
         

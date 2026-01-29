@@ -1,16 +1,15 @@
 
 import React from 'react';
-// Added .ts extension and fixed Provenance import error
 import { Provenance } from '../types.ts';
-import { COLORS } from '../constants.tsx';
 
 interface EvidencePanelProps {
   provenance: Provenance[];
   onEvidenceClick?: (p: Provenance) => void;
   activeId?: string;
+  onOpenDocument?: (docId: string) => void; // Added prop for navigation
 }
 
-const EvidencePanel: React.FC<EvidencePanelProps> = ({ provenance, onEvidenceClick, activeId }) => {
+const EvidencePanel: React.FC<EvidencePanelProps> = ({ provenance, onEvidenceClick, activeId, onOpenDocument }) => {
   return (
     <div className="w-[340px] border-l border-[#d0d7de] dark:border-[#30363d] bg-[#f6f8fa] dark:bg-[#0d1117] flex flex-col h-full overflow-hidden transition-colors duration-200">
       <div className="p-4 border-b border-[#d0d7de] dark:border-[#30363d] flex justify-between items-center bg-white dark:bg-[#161b22] h-14">
@@ -51,7 +50,16 @@ const EvidencePanel: React.FC<EvidencePanelProps> = ({ provenance, onEvidenceCli
                 <span className="flex items-center gap-1">
                   偏移量: {p.start} - {p.end}
                 </span>
-                <span className="text-[#0366d6] dark:text-[#58a6ff] font-bold hover:underline">定位原文 ↗</span>
+                <button 
+                    onClick={(e) => { 
+                        e.stopPropagation(); 
+                        if (p.doc_id && onOpenDocument) onOpenDocument(p.doc_id);
+                        else alert("该片段来源为非结构化数据，无法跳转原件。");
+                    }} 
+                    className="text-[#0366d6] dark:text-[#58a6ff] font-bold hover:underline flex items-center gap-1"
+                >
+                    定位原文 ↗
+                </button>
               </div>
             </div>
           ))

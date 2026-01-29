@@ -1,15 +1,16 @@
 
 import React, { useState, useRef, useEffect } from 'react';
-import { Icons, MOCK_KBS, MOCK_FAQS } from '../constants.tsx';
+import { Icons, MOCK_KBS } from '../constants.tsx';
 import { performQA } from '../services/geminiService.ts';
-import { QAResponse, RetrievalConfig, User, Conversation, Message, Provenance } from '../types.ts';
+import { RetrievalConfig, User, Conversation, Message, Provenance, KnowledgeBase } from '../types.ts';
 import EvidencePanel from './EvidencePanel.tsx';
 
 interface QAViewProps {
   currentUser: User;
+  onOpenDocument?: (docId: string) => void;
 }
 
-const QAView: React.FC<QAViewProps> = ({ currentUser }) => {
+const QAView: React.FC<QAViewProps> = ({ currentUser, onOpenDocument }) => {
   // --- Global State ---
   const [conversations, setConversations] = useState<Conversation[]>([
     {
@@ -17,7 +18,8 @@ const QAView: React.FC<QAViewProps> = ({ currentUser }) => {
       title: '15式坦克高原性能分析',
       createdAt: '2024-03-25 10:00',
       updatedAt: '2024-03-25 11:30',
-      messages: [] // Simulating empty history for demo, usually loaded
+      messages: [], // Simulating empty history for demo, usually loaded
+      bound_kb_ids: ['kb-1']
     }
   ]);
   const [currentConvId, setCurrentConvId] = useState<string>('c1');
@@ -25,20 +27,29 @@ const QAView: React.FC<QAViewProps> = ({ currentUser }) => {
   const [isSearching, setIsSearching] = useState(false);
   const [currentStep, setCurrentStep] = useState(0); // For progress bar
   const [isConfigOpen, setIsConfigOpen] = useState(false);
+  
+  // New Chat Wizard State
+  const [isNewChatModalOpen, setIsNewChatModalOpen] = useState(false);
+  const [newChatTitle, setNewChatTitle] = useState('');
+  const [selectedKbIds, setSelectedKbIds] = useState<string[]>([]);
+
   const [activeQuote, setActiveQuote] = useState<string | null>(null);
   const [activeEvidence, setActiveEvidence] = useState<Provenance[]>([]);
 
   // Find current conversation
   const currentConversation = conversations.find(c => c.id === currentConvId) || conversations[0];
 
-  const authorizedKBs = MOCK_KBS.filter(kb => 
-    kb.authorized_roles.includes(currentUser.roleId) || 
-    kb.authorized_departments.includes(currentUser.departmentId) ||
-    kb.authorized_users.includes(currentUser.id)
-  );
+  // Helper: Check KB Permission
+  const hasKbAccess = (kb: KnowledgeBase): boolean => {
+      return (
+          kb.authorized_roles.includes(currentUser.roleId) || 
+          kb.authorized_departments.includes(currentUser.departmentId) ||
+          kb.authorized_users.includes(currentUser.id)
+      );
+  };
 
   const [retrievalConfig, setRetrievalConfig] = useState<RetrievalConfig>({
-    selected_kb_ids: authorizedKBs.map(kb => kb.id),
+    selected_kb_ids: [], // Dynamically set per chat
     strategy: 'hybrid',
     tiers: { faq: true, graph: true, docs: true, llm: true },
     enhanced: { queryRewrite: true, hyde: false, stepback: true }
@@ -55,18 +66,33 @@ const QAView: React.FC<QAViewProps> = ({ currentUser }) => {
 
   // --- Handlers ---
 
-  const handleNewChat = () => {
+  const openNewChatWizard = () => {
+      setNewChatTitle('');
+      // Pre-select all available KBs by default
+      const availableIds = MOCK_KBS.filter(kb => hasKbAccess(kb)).map(kb => kb.id);
+      setSelectedKbIds(availableIds);
+      setIsNewChatModalOpen(true);
+  };
+
+  const handleCreateChat = () => {
+    if (selectedKbIds.length === 0) {
+        alert("请至少选择一个知识库绑定会话。");
+        return;
+    }
+
     const newConv: Conversation = {
       id: `c-${Date.now()}`,
-      title: '新会话 ' + new Date().toLocaleTimeString(),
+      title: newChatTitle.trim() || ('新会话 ' + new Date().toLocaleTimeString()),
       messages: [],
       createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString()
+      updatedAt: new Date().toISOString(),
+      bound_kb_ids: selectedKbIds
     };
     setConversations([newConv, ...conversations]);
     setCurrentConvId(newConv.id);
     setActiveQuote(null);
     setActiveEvidence([]);
+    setIsNewChatModalOpen(false);
   };
 
   const handleDeleteChat = (e: React.MouseEvent, id: string) => {
@@ -77,7 +103,8 @@ const QAView: React.FC<QAViewProps> = ({ currentUser }) => {
       if (currentConvId === id && newConvs.length > 0) {
         setCurrentConvId(newConvs[0].id);
       } else if (newConvs.length === 0) {
-        handleNewChat(); // Ensure at least one chat exists
+        // Just empty state, user can create new
+        // But to keep it simple, we can force creating one or show empty UI
       }
     }
   };
@@ -108,7 +135,14 @@ const QAView: React.FC<QAViewProps> = ({ currentUser }) => {
   const handleSearch = async (e?: React.FormEvent, overrideQuery?: string) => {
     if (e) e.preventDefault();
     const finalQuery = overrideQuery || query;
-    if (!finalQuery.trim() || retrievalConfig.selected_kb_ids.length === 0) return;
+    if (!finalQuery.trim()) return;
+
+    // Use current conversation's bound KBs
+    const activeKbIds = currentConversation?.bound_kb_ids || [];
+    if (activeKbIds.length === 0) {
+        alert("当前会话未绑定任何有效的知识库，无法进行检索。");
+        return;
+    }
 
     setIsSearching(true);
     
@@ -138,7 +172,10 @@ const QAView: React.FC<QAViewProps> = ({ currentUser }) => {
     }
 
     try {
-      const res = await performQA(finalQuery, retrievalConfig, currentUser, userMsg.quote);
+      // Update config with session-specific KBs
+      const sessionConfig = { ...retrievalConfig, selected_kb_ids: activeKbIds };
+      
+      const res = await performQA(finalQuery, sessionConfig, currentUser, userMsg.quote);
       
       // 2. Add Assistant Message
       const aiMsg: Message = {
@@ -198,7 +235,7 @@ const QAView: React.FC<QAViewProps> = ({ currentUser }) => {
       <div className="w-64 bg-[#f6f8fa] dark:bg-[#0d1117] border-r border-[#d0d7de] dark:border-[#30363d] flex flex-col flex-shrink-0">
          <div className="p-4 border-b border-[#d0d7de] dark:border-[#30363d]">
             <button 
-              onClick={handleNewChat}
+              onClick={openNewChatWizard}
               className="w-full flex items-center justify-center gap-2 bg-[#2da44e] text-white py-2 rounded-md text-xs font-bold shadow-sm hover:opacity-90 transition-all active:scale-95"
             >
                <Icons.Plus /> 新建会话
@@ -237,7 +274,7 @@ const QAView: React.FC<QAViewProps> = ({ currentUser }) => {
       {/* --- Main Chat Area --- */}
       <div className="flex-1 flex flex-col h-full bg-[#ffffff] dark:bg-[#0d1117] min-w-0">
         
-        {/* Top Bar: Retrieval Config */}
+        {/* Top Bar: Retrieval Config (Visual Only + Quick Toggles) */}
         <div className="px-6 py-3 border-b border-[#d0d7de] dark:border-[#30363d] bg-[#f6f8fa]/50 dark:bg-[#0d1117] flex justify-between items-center z-20">
            <div className="flex gap-4">
               <button 
@@ -250,6 +287,8 @@ const QAView: React.FC<QAViewProps> = ({ currentUser }) => {
                  <span className={retrievalConfig.enhanced.queryRewrite ? 'text-blue-500 font-bold' : ''}>Rewrite: ON</span>
                  <span className="opacity-30">|</span>
                  <span className={retrievalConfig.enhanced.stepback ? 'text-blue-500 font-bold' : ''}>Stepback: ON</span>
+                 <span className="opacity-30">|</span>
+                 <span className="font-bold">Bound KBs: {currentConversation?.bound_kb_ids?.length || 0}</span>
               </div>
            </div>
            {isSearching && (
@@ -264,11 +303,11 @@ const QAView: React.FC<QAViewProps> = ({ currentUser }) => {
            )}
         </div>
 
-        {/* Enhanced Config Modal (Same as before) */}
+        {/* Enhanced Config Modal */}
         {isConfigOpen && (
           <div className="absolute top-14 left-8 z-50 w-[420px] bg-white dark:bg-[#1c2128] border border-[#d0d7de] dark:border-[#30363d] rounded-2xl shadow-2xl p-6 space-y-6 animate-in fade-in zoom-in-95 duration-200">
              <div className="flex justify-between items-center pb-2 border-b dark:border-[#30363d]">
-                <h4 className="font-bold text-sm">检索链路与增强策略</h4>
+                <h4 className="font-bold text-sm">本次会话临时策略调整</h4>
                 <button onClick={() => setIsConfigOpen(false)} className="text-[#8b949e]">✕</button>
              </div>
              
@@ -487,7 +526,106 @@ const QAView: React.FC<QAViewProps> = ({ currentUser }) => {
       {/* Right Evidence Panel - Linked to Active Conversation */}
       <EvidencePanel 
          provenance={activeEvidence.length > 0 ? activeEvidence : (currentConversation.messages.slice(-1)[0]?.qaResponse?.provenance || [])} 
+         onOpenDocument={onOpenDocument}
       />
+
+      {/* New Session Wizard Modal */}
+      {isNewChatModalOpen && (
+          <div className="fixed inset-0 z-[100] bg-black/80 backdrop-blur-md flex items-center justify-center p-6 animate-in fade-in duration-200">
+              <div className="bg-[#0d1117] border border-[#30363d] w-full max-w-2xl rounded-2xl shadow-2xl flex flex-col overflow-hidden animate-in zoom-in-95">
+                  <div className="p-6 border-b border-[#30363d] bg-[#161b22] flex justify-between items-center">
+                      <h3 className="text-xl font-bold flex items-center gap-2">
+                          <span className="bg-green-600 text-white p-1 rounded"><Icons.Plus /></span>
+                          初始化研制会话
+                      </h3>
+                      <button onClick={() => setIsNewChatModalOpen(false)} className="text-[#8b949e] hover:text-white">✕</button>
+                  </div>
+                  
+                  <div className="p-8 space-y-8 flex-1 overflow-y-auto bg-white dark:bg-[#0d1117]">
+                      <div className="space-y-2">
+                          <label className="text-xs font-black text-[#8b949e] uppercase">会话主题 (Optional)</label>
+                          <input 
+                              value={newChatTitle}
+                              onChange={(e) => setNewChatTitle(e.target.value)}
+                              placeholder="e.g. 某型导弹热控系统故障排查" 
+                              className="w-full bg-[#f6f8fa] dark:bg-[#161b22] border border-[#d0d7de] dark:border-[#30363d] rounded-lg p-3 text-sm focus:border-blue-500 outline-none"
+                          />
+                      </div>
+
+                      <div className="space-y-4">
+                          <label className="text-xs font-black text-[#8b949e] uppercase flex justify-between">
+                              <span>绑定知识库 (Knowledge Base Binding)</span>
+                              <span className="text-[10px] bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 px-2 py-0.5 rounded">
+                                  已选: {selectedKbIds.length}
+                              </span>
+                          </label>
+                          
+                          <div className="grid grid-cols-2 gap-4">
+                              {MOCK_KBS.map(kb => {
+                                  const accessible = hasKbAccess(kb);
+                                  const isSelected = selectedKbIds.includes(kb.id);
+                                  return (
+                                      <div 
+                                          key={kb.id}
+                                          onClick={() => {
+                                              if (!accessible) return;
+                                              if (isSelected) {
+                                                  setSelectedKbIds(prev => prev.filter(id => id !== kb.id));
+                                              } else {
+                                                  setSelectedKbIds(prev => [...prev, kb.id]);
+                                              }
+                                          }}
+                                          className={`relative p-4 rounded-xl border transition-all cursor-pointer flex items-start gap-3 ${
+                                              !accessible 
+                                                  ? 'bg-gray-100 dark:bg-[#161b22] border-transparent opacity-50 cursor-not-allowed grayscale' 
+                                                  : isSelected 
+                                                      ? 'bg-blue-50 dark:bg-blue-900/20 border-blue-500 shadow-md ring-1 ring-blue-500' 
+                                                      : 'bg-white dark:bg-[#0d1117] border-[#d0d7de] dark:border-[#30363d] hover:border-blue-400'
+                                          }`}
+                                      >
+                                          <div className={`mt-1 w-4 h-4 rounded-full border flex items-center justify-center flex-shrink-0 ${
+                                              isSelected ? 'bg-blue-500 border-blue-500 text-white' : 'border-gray-400'
+                                          }`}>
+                                              {isSelected && <svg width="10" height="10" viewBox="0 0 16 16" fill="currentColor"><path d="M13.78 4.22a.75.75 0 0 1 0 1.06l-7.25 7.25a.75.75 0 0 1-1.06 0L2.22 9.28a.75.75 0 0 1 1.06-1.06L6 10.94l6.72-6.72a.75.75 0 0 1 1.06 0Z"></path></svg>}
+                                          </div>
+                                          
+                                          <div>
+                                              <div className="flex items-center gap-2 mb-1">
+                                                  <h4 className="font-bold text-sm">{kb.name}</h4>
+                                                  {!accessible && <Icons.Lock />}
+                                              </div>
+                                              <p className="text-[10px] text-[#57606a] dark:text-[#8b949e] line-clamp-2">{kb.description}</p>
+                                              <div className="mt-2 flex gap-1">
+                                                  <span className={`text-[9px] px-1.5 rounded border ${
+                                                      kb.clearance === '机密' ? 'text-red-500 border-red-200 bg-red-50' : 'text-green-500 border-green-200 bg-green-50'
+                                                  }`}>{kb.clearance}</span>
+                                              </div>
+                                          </div>
+                                      </div>
+                                  );
+                              })}
+                          </div>
+                      </div>
+                  </div>
+
+                  <div className="p-6 border-t border-[#30363d] bg-[#161b22] flex justify-end gap-3">
+                      <button 
+                          onClick={() => setIsNewChatModalOpen(false)} 
+                          className="px-4 py-2 text-sm font-bold text-[#c9d1d9] hover:bg-[#21262d] rounded-lg transition-colors"
+                      >
+                          取消
+                      </button>
+                      <button 
+                          onClick={handleCreateChat}
+                          disabled={selectedKbIds.length === 0}
+                          className="px-6 py-2 text-sm font-bold bg-[#238636] text-white rounded-lg shadow-lg hover:bg-[#2ea043] disabled:opacity-50 disabled:cursor-not-allowed"
+                      >
+                          启动会话
+                      </button>
+                  </div>
+              </div>
+          </div>
+      )}
     </div>
   );
 };

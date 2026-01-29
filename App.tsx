@@ -8,6 +8,7 @@ import AuthView from './components/AuthView.tsx';
 import DocProcessingView from './components/DocProcessingView.tsx';
 import { Icons, MOCK_KBS, MOCK_DOCS } from './constants.tsx';
 import { User, ClearanceLevel, WeaponDocument } from './types.ts';
+import { ApiService } from './services/api.ts';
 
 const App: React.FC = () => {
   const [activeTab, setActiveTab] = useState('qa');
@@ -28,6 +29,16 @@ const App: React.FC = () => {
     setTheme(prev => prev === 'light' ? 'dark' : 'light');
   };
 
+  const handleOpenDocument = async (docId: string) => {
+      // Use the service to fetch doc
+      const res = await ApiService.getDocumentById(docId);
+      if (res.data) {
+          setViewingDoc(res.data);
+      } else {
+          alert(`文档 (ID: ${docId}) 不存在或权限不足`);
+      }
+  };
+
   if (!currentUser) {
     return <AuthView onLogin={setCurrentUser} />;
   }
@@ -35,7 +46,7 @@ const App: React.FC = () => {
   const renderContent = () => {
     switch (activeTab) {
       case 'qa':
-        return <QAView currentUser={currentUser} />;
+        return <QAView currentUser={currentUser} onOpenDocument={handleOpenDocument} />;
       case 'kg':
         return <KnowledgeGraph />;
       case 'admin':

@@ -1,10 +1,10 @@
 
 import React, { useState } from 'react';
 import { Icons, MOCK_KBS, MOCK_AUDIT_LOGS, MOCK_POLICIES, MOCK_DEPARTMENTS, MOCK_ROLES, MOCK_USERS, MOCK_FAQS } from '../constants.tsx';
-import { ClearanceLevel, User, KnowledgeBase, SensitiveWordPolicy, RegistrationRequest, AuditStatus, AuditLog, Department, Role, Permission, FAQPair, UserRole } from '../types.ts';
+import { ClearanceLevel, User, KnowledgeBase, SensitiveWordPolicy, RegistrationRequest, AuditStatus, AuditLog, Department, Role, Permission, FAQPair, UserRole, RetrievalConfig } from '../types.ts';
 
 const AdminView: React.FC = () => {
-  const [adminTab, setAdminTab] = useState<'approvals' | 'departments' | 'roles' | 'users' | 'kbs' | 'security' | 'audit' | 'faq_gov'>('approvals');
+  const [adminTab, setAdminTab] = useState<'approvals' | 'departments' | 'roles' | 'users' | 'kbs' | 'security' | 'audit' | 'faq_gov' | 'search_config'>('approvals');
   
   const [departments, setDepartments] = useState<Department[]>(MOCK_DEPARTMENTS);
   const [roles, setRoles] = useState<Role[]>(MOCK_ROLES);
@@ -13,6 +13,14 @@ const AdminView: React.FC = () => {
   const [policies, setPolicies] = useState<SensitiveWordPolicy[]>(MOCK_POLICIES);
   const [faqs, setFaqs] = useState<FAQPair[]>(MOCK_FAQS);
   
+  // Search Config State
+  const [globalRetrievalConfig, setGlobalRetrievalConfig] = useState<RetrievalConfig>({
+      selected_kb_ids: [],
+      strategy: 'hybrid',
+      tiers: { faq: true, graph: true, docs: true, llm: true },
+      enhanced: { queryRewrite: true, hyde: false, stepback: true }
+  });
+
   const [requests, setRequests] = useState<RegistrationRequest[]>([
     {
       id: 'req-1',
@@ -159,6 +167,7 @@ const AdminView: React.FC = () => {
           { id: 'faq_gov', label: 'QA 治理', icon: '🧠', count: faqReviews.length },
           { id: 'users', label: '人员治理', icon: '👥' },
           { id: 'kbs', label: '资源库管理', icon: '🗄️' },
+          { id: 'search_config', label: '检索策略', icon: '⚙️' }, // New Tab
           { id: 'security', label: '合规策略', icon: '🛡️' },
           { id: 'audit', label: '历史审计', icon: '📋' },
         ].map(tab => (
@@ -182,6 +191,198 @@ const AdminView: React.FC = () => {
       </div>
 
       <div className="flex-1 overflow-auto p-8 max-w-7xl">
+
+        {/* --- SEARCH CONFIG TAB (NEW) --- */}
+        {adminTab === 'search_config' && (
+          <div className="space-y-8 animate-in fade-in duration-300">
+             <div className="flex justify-between items-center">
+                <div>
+                   <h2 className="text-2xl font-bold">检索策略配置中心</h2>
+                   <p className="text-sm text-[#57606a] dark:text-[#8b949e]">可视化编排全局 RAG 检索链路与召回参数。</p>
+                </div>
+                <button 
+                  onClick={() => alert("策略已下发至全网节点")}
+                  className="bg-[#0366d6] text-white px-6 py-2 rounded-md text-sm font-bold shadow-lg flex items-center gap-2 hover:scale-105 transition-transform"
+                >
+                  <Icons.Activity /> 保存并下发策略
+                </button>
+             </div>
+
+             <div className="grid grid-cols-12 gap-8">
+                {/* Left Column: Visual Pipeline */}
+                <div className="col-span-8 space-y-6">
+                    {/* 1. Retrieval Sources */}
+                    <div className="bg-white dark:bg-[#161b22] border border-[#d0d7de] dark:border-[#30363d] rounded-xl p-6 relative overflow-hidden">
+                        <h3 className="text-sm font-bold uppercase tracking-wider mb-6 flex items-center gap-2">
+                            <span className="w-2 h-2 rounded-full bg-blue-500"></span> 
+                            第一阶段：多路召回源配置 (Retrieval Sources)
+                        </h3>
+                        <div className="flex gap-4">
+                            {[
+                                { id: 'faq', label: 'FAQ 问答库', desc: '精确匹配历史问答对', active: globalRetrievalConfig.tiers.faq },
+                                { id: 'graph', label: '知识图谱 (KG)', desc: '实体关系与多跳推理', active: globalRetrievalConfig.tiers.graph },
+                                { id: 'docs', label: '非结构化文档', desc: '全文向量切片检索', active: globalRetrievalConfig.tiers.docs },
+                            ].map((source) => (
+                                <div key={source.id} className={`flex-1 p-4 rounded-lg border-2 cursor-pointer transition-all ${
+                                    source.active 
+                                    ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/10' 
+                                    : 'border-[#d0d7de] dark:border-[#30363d] opacity-60 grayscale'
+                                }`}
+                                onClick={() => setGlobalRetrievalConfig(prev => ({...prev, tiers: {...prev.tiers, [source.id]: !prev.tiers[source.id as keyof typeof prev.tiers]}}))}
+                                >
+                                    <div className="flex justify-between items-center mb-2">
+                                        <span className="font-bold">{source.label}</span>
+                                        <div className={`w-4 h-4 rounded-full border ${source.active ? 'bg-blue-500 border-blue-500' : 'bg-transparent border-gray-400'}`}></div>
+                                    </div>
+                                    <p className="text-xs text-[#57606a] dark:text-[#8b949e]">{source.desc}</p>
+                                    {source.active && (
+                                        <div className="mt-4">
+                                            <div className="flex justify-between text-[10px] font-bold mb-1">
+                                                <span>权重 (Weight)</span>
+                                                <span>High</span>
+                                            </div>
+                                            <div className="h-1.5 bg-gray-200 dark:bg-[#30363d] rounded-full overflow-hidden">
+                                                <div className="h-full bg-blue-500 w-[80%]"></div>
+                                            </div>
+                                        </div>
+                                    )}
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+
+                    {/* 2. Enhancement Pipeline (Flowchart style) */}
+                    <div className="bg-white dark:bg-[#161b22] border border-[#d0d7de] dark:border-[#30363d] rounded-xl p-6 relative">
+                        <h3 className="text-sm font-bold uppercase tracking-wider mb-6 flex items-center gap-2">
+                            <span className="w-2 h-2 rounded-full bg-purple-500"></span> 
+                            第二阶段：智能增强流水线 (Reasoning Pipeline)
+                        </h3>
+                        
+                        <div className="flex items-center justify-between relative z-10">
+                             {/* Start Node */}
+                             <div className="flex flex-col items-center gap-2">
+                                 <div className="w-12 h-12 rounded-full bg-[#f6f8fa] dark:bg-[#0d1117] border border-[#d0d7de] dark:border-[#30363d] flex items-center justify-center font-bold text-xs">Query</div>
+                             </div>
+
+                             {/* Arrow */}
+                             <div className="h-0.5 flex-1 bg-[#d0d7de] dark:bg-[#30363d]"></div>
+
+                             {/* Step 1: Rewrite */}
+                             <div 
+                                onClick={() => setGlobalRetrievalConfig(prev => ({...prev, enhanced: {...prev.enhanced, queryRewrite: !prev.enhanced.queryRewrite}}))}
+                                className={`w-32 p-3 rounded-lg border cursor-pointer transition-all flex flex-col items-center gap-1 hover:scale-105 ${
+                                    globalRetrievalConfig.enhanced.queryRewrite 
+                                    ? 'bg-purple-50 dark:bg-purple-900/10 border-purple-500 shadow-md' 
+                                    : 'bg-[#f6f8fa] dark:bg-[#0d1117] border-[#d0d7de] dark:border-[#30363d] opacity-60'
+                                }`}>
+                                 <span className="text-lg">✍️</span>
+                                 <span className="text-xs font-bold">Query Rewrite</span>
+                                 <span className="text-[9px] text-center text-[#57606a]">历史补全 & 纠错</span>
+                             </div>
+
+                             {/* Arrow */}
+                             <div className="h-0.5 flex-1 bg-[#d0d7de] dark:bg-[#30363d]"></div>
+
+                             {/* Step 2: Stepback */}
+                             <div 
+                                onClick={() => setGlobalRetrievalConfig(prev => ({...prev, enhanced: {...prev.enhanced, stepback: !prev.enhanced.stepback}}))}
+                                className={`w-32 p-3 rounded-lg border cursor-pointer transition-all flex flex-col items-center gap-1 hover:scale-105 ${
+                                    globalRetrievalConfig.enhanced.stepback 
+                                    ? 'bg-orange-50 dark:bg-orange-900/10 border-orange-500 shadow-md' 
+                                    : 'bg-[#f6f8fa] dark:bg-[#0d1117] border-[#d0d7de] dark:border-[#30363d] opacity-60'
+                                }`}>
+                                 <span className="text-lg">🔙</span>
+                                 <span className="text-xs font-bold">Step-Back</span>
+                                 <span className="text-[9px] text-center text-[#57606a]">抽象化问题提炼</span>
+                             </div>
+
+                             {/* Arrow */}
+                             <div className="h-0.5 flex-1 bg-[#d0d7de] dark:bg-[#30363d]"></div>
+
+                             {/* Step 3: HyDE */}
+                             <div 
+                                onClick={() => setGlobalRetrievalConfig(prev => ({...prev, enhanced: {...prev.enhanced, hyde: !prev.enhanced.hyde}}))}
+                                className={`w-32 p-3 rounded-lg border cursor-pointer transition-all flex flex-col items-center gap-1 hover:scale-105 ${
+                                    globalRetrievalConfig.enhanced.hyde 
+                                    ? 'bg-teal-50 dark:bg-teal-900/10 border-teal-500 shadow-md' 
+                                    : 'bg-[#f6f8fa] dark:bg-[#0d1117] border-[#d0d7de] dark:border-[#30363d] opacity-60'
+                                }`}>
+                                 <span className="text-lg">🔮</span>
+                                 <span className="text-xs font-bold">HyDE</span>
+                                 <span className="text-[9px] text-center text-[#57606a]">假设性答案生成</span>
+                             </div>
+
+                             {/* Arrow */}
+                             <div className="h-0.5 flex-1 bg-[#d0d7de] dark:bg-[#30363d]"></div>
+
+                             {/* End Node */}
+                             <div className="flex flex-col items-center gap-2">
+                                 <div className="w-12 h-12 rounded-full bg-green-500 text-white flex items-center justify-center font-bold text-xs shadow-lg">LLM</div>
+                             </div>
+                        </div>
+                    </div>
+                </div>
+
+                {/* Right Column: Parameters */}
+                <div className="col-span-4 space-y-6">
+                    {/* Strategy Selector */}
+                    <div className="bg-white dark:bg-[#161b22] border border-[#d0d7de] dark:border-[#30363d] rounded-xl p-6">
+                         <h3 className="text-xs font-black text-[#8b949e] uppercase mb-4">核心检索算法</h3>
+                         <div className="space-y-3">
+                             {[
+                                 { id: 'keyword', label: '关键词检索 (BM25)', icon: 'ABC' },
+                                 { id: 'vector', label: '稠密向量检索 (Dense)', icon: '◎' },
+                                 { id: 'hybrid', label: '混合检索 (Hybrid RRF)', icon: '⚡' },
+                             ].map((s) => (
+                                 <div 
+                                    key={s.id} 
+                                    onClick={() => setGlobalRetrievalConfig(prev => ({...prev, strategy: s.id as any}))}
+                                    className={`flex items-center gap-3 p-3 rounded-lg border cursor-pointer ${
+                                        globalRetrievalConfig.strategy === s.id 
+                                        ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/20' 
+                                        : 'border-[#d0d7de] dark:border-[#30363d] hover:bg-[#f6f8fa] dark:hover:bg-[#0d1117]'
+                                    }`}
+                                 >
+                                     <div className={`w-4 h-4 rounded-full border flex items-center justify-center ${
+                                         globalRetrievalConfig.strategy === s.id ? 'border-blue-500' : 'border-gray-400'
+                                     }`}>
+                                         {globalRetrievalConfig.strategy === s.id && <div className="w-2 h-2 rounded-full bg-blue-500"></div>}
+                                     </div>
+                                     <div className="flex-1">
+                                         <p className="text-xs font-bold">{s.label}</p>
+                                     </div>
+                                     <span className="font-mono text-xs opacity-50">{s.icon}</span>
+                                 </div>
+                             ))}
+                         </div>
+                    </div>
+
+                    {/* Parameters */}
+                    <div className="bg-white dark:bg-[#161b22] border border-[#d0d7de] dark:border-[#30363d] rounded-xl p-6">
+                         <h3 className="text-xs font-black text-[#8b949e] uppercase mb-4">召回参数 (Parameters)</h3>
+                         <div className="space-y-6">
+                             <div>
+                                 <div className="flex justify-between text-xs font-bold mb-2">
+                                     <span>Top-K 截断</span>
+                                     <span className="text-blue-500">5</span>
+                                 </div>
+                                 <input type="range" min="1" max="10" defaultValue="5" className="w-full accent-blue-500" />
+                                 <p className="text-[9px] text-[#57606a] mt-1">控制送入大模型的上下文片段数量</p>
+                             </div>
+                             <div>
+                                 <div className="flex justify-between text-xs font-bold mb-2">
+                                     <span>相似度阈值 (Threshold)</span>
+                                     <span className="text-blue-500">0.75</span>
+                                 </div>
+                                 <input type="range" min="0" max="1" step="0.05" defaultValue="0.75" className="w-full accent-blue-500" />
+                                 <p className="text-[9px] text-[#57606a] mt-1">过滤低相关性的噪声数据</p>
+                             </div>
+                         </div>
+                    </div>
+                </div>
+             </div>
+          </div>
+        )}
         
         {/* --- USERS MANAGEMENT TAB --- */}
         {adminTab === 'users' && (

@@ -30,6 +30,25 @@ export enum Permission {
   DOC_PROCESS = '智能文档处理'
 }
 
+// --- API Response Wrappers (For Backend Prep) ---
+export interface ApiResponse<T> {
+  code: number;
+  message: string;
+  data: T;
+  timestamp: string;
+}
+
+export interface FileParseResult {
+  fileName: string;
+  fileType: string;
+  content: string; // Extracted plain text
+  metadata?: {
+    pageCount?: number;
+    author?: string;
+    detectedType?: string; // e.g., 'Official Document'
+  };
+}
+
 export interface Department {
   id: string;
   name: string;
@@ -142,6 +161,7 @@ export interface ReasoningStep {
 export interface Provenance {
   sentence_id: string;
   source_name: string;
+  doc_id?: string; // Added for navigation linkage
   text: string;
   media_url?: string;
   media_type?: 'image' | 'video' | 'audio';
@@ -186,4 +206,5 @@ export interface Conversation {
   messages: Message[];
   createdAt: string;
   updatedAt: string;
+  bound_kb_ids: string[]; // Added: Specific KBs bound to this chat
 }

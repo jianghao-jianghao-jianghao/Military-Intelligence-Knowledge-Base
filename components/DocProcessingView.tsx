@@ -1,6 +1,7 @@
 
 import React, { useState, useRef } from 'react';
 import { processDocument } from '../services/geminiService.ts';
+import { ApiService } from '../services/api.ts';
 import { Icons } from '../constants.tsx';
 
 type Mode = 'write' | 'optimize' | 'proofread' | 'format';
@@ -43,27 +44,35 @@ const DocProcessingView: React.FC = () => {
     fileInputRef.current?.click();
   };
 
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
     
     setIsImporting(true);
-    // Simulate file parsing delay
-    setTimeout(() => {
-        // In a real app, use pdf.js or mammoth.js here.
-        // We simulate extracted content based on the file name.
-        const mockExtractedText = `[系统提示: 已成功从 ${file.name} 提取文本]\n\n关于兵工研制大脑项目组成立的通知（草案）\n\n各相关部门：\n为了加快数字化转型，经研究决定，拟成立“兵工研制大脑”专项工作组。\n\n一、工作目标\n构建集知识检索、图谱分析于一体的智能中台。\n\n二、人员安排\n组长：陆研工\n副组长：王分析\n\n特此通知。\n\n二〇二四年三月二十六日`;
+    
+    try {
+        const response = await ApiService.parseFile(file);
+        const { content, metadata } = response.data;
         
         if (importTarget === 'primary') {
-            setInputContent(mockExtractedText);
+            setInputContent(content);
         } else {
-            setExtraContext(`[系统提示: 已加载标准范文 ${file.name}]\n\n1. 标题必须使用二号小标宋体。\n2. 正文必须使用三号仿宋_GB2312。\n3. 落款必须包含发文机关全称。`);
+            // If it's context/reference, maybe format it a bit
+            const contextPrefix = metadata?.detectedType 
+                ? `[系统提示: 已加载 ${metadata.detectedType} 类型的参考标准]\n` 
+                : `[系统提示: 已加载标准范文 ${file.name}]\n`;
+            
+            // For demo context, if content is short we use it, otherwise keep abstract
+            setExtraContext(contextPrefix + content.slice(0, 500) + (content.length > 500 ? '...' : ''));
         }
-        
+    } catch (err) {
+        console.error("File import failed", err);
+        alert("文件解析失败，请检查网络或文件格式。");
+    } finally {
         setIsImporting(false);
         // Reset input
         if (fileInputRef.current) fileInputRef.current.value = '';
-    }, 1200);
+    }
   };
 
   const handleProcess = async () => {

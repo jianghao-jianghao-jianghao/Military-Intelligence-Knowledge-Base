@@ -65,11 +65,11 @@ async def get_kb_files(
 @router.post("/upload", response_model=ApiResponse[bool])
 async def upload_document(
     background_tasks: BackgroundTasks,
+    db: SessionDep,
+    current_user: CurrentUser,
     file: UploadFile = File(...),
     kbId: str = Form(...),
     clearance: str = Form(...), # "机密", "内部"
-    db: SessionDep = Depends(),
-    current_user: CurrentUser = Depends()
 ) -> Any:
     """
     上传文档入库 (异步处理)

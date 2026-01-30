@@ -57,8 +57,8 @@ async def agent_format(
 
 @router.post("/learn-style", response_model=ApiResponse[StyleLearnResponse])
 async def agent_learn_style(
+    current_user: CurrentUser,
     file: UploadFile = File(...),
-    current_user: CurrentUser = Depends()
 ) -> Any:
     """
     [新] 格式学习接口

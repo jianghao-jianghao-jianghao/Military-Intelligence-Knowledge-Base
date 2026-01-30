@@ -1,7 +1,7 @@
 
 import uuid
 from datetime import datetime
-from sqlalchemy import Column, String, Integer, ForeignKey, Boolean, JSON, text, SmallInteger, DateTime
+from sqlalchemy import Column, String, Integer, ForeignKey, Boolean, JSON, text, SmallInteger, DateTime, Text
 from sqlalchemy.dialects.postgresql import UUID, JSONB
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from sqlalchemy.sql import func
@@ -87,5 +87,5 @@ class RegistrationRequest(Base):
     status: Mapped[str] = mapped_column(String(20), default="PENDING")
     
     auditor_id: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("auth.users.id"))
-    justification: Mapped[str | None] = mapped_column(text("TEXT"))
+    justification: Mapped[str | None] = mapped_column(Text)
     request_date: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())

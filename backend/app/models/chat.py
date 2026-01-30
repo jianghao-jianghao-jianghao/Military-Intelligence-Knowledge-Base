@@ -1,7 +1,7 @@
 
 import uuid
 from datetime import datetime
-from sqlalchemy import Column, String, Integer, ForeignKey, Boolean, text, SmallInteger, DateTime
+from sqlalchemy import Column, String, Integer, ForeignKey, Boolean, text, SmallInteger, DateTime, Text
 from sqlalchemy.dialects.postgresql import UUID, JSONB, ARRAY
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from sqlalchemy.sql import func
@@ -48,7 +48,7 @@ class Message(Base):
     # 'user' | 'assistant'
     role: Mapped[str] = mapped_column(String(10), nullable=False)
     
-    content: Mapped[str] = mapped_column(text("TEXT"), nullable=False)
+    content: Mapped[str] = mapped_column(Text, nullable=False)
     
     # 核心：思维链，存储推理步骤 [{"title": "检索", "content": "..."}]
     thought_chain: Mapped[list[dict] | None] = mapped_column(JSONB)
@@ -77,7 +77,7 @@ class Feedback(Base):
     
     # 1: 赞, 0: 无感, -1: 踩
     score: Mapped[int] = mapped_column(SmallInteger)
-    comment: Mapped[str | None] = mapped_column(text("TEXT"))
+    comment: Mapped[str | None] = mapped_column(Text)
     
     # 是否已被管理员审阅
     is_reviewed: Mapped[bool] = mapped_column(Boolean, default=False)

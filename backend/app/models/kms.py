@@ -1,7 +1,7 @@
 
 import uuid
 from datetime import datetime
-from sqlalchemy import String, Integer, ForeignKey, Boolean, text, SmallInteger, DateTime, BigInteger
+from sqlalchemy import String, Integer, ForeignKey, Boolean, text, SmallInteger, DateTime, BigInteger, Text
 from sqlalchemy.dialects.postgresql import UUID, JSONB
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from sqlalchemy.sql import func
@@ -20,7 +20,7 @@ class KnowledgeBase(Base):
 
     id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, server_default=text("gen_random_uuid()"))
     name: Mapped[str] = mapped_column(String(100), nullable=False)
-    description: Mapped[str | None] = mapped_column(text("TEXT"))
+    description: Mapped[str | None] = mapped_column(Text)
     
     # 库基准密级 (0:非密, 1:内部, 2:秘密, 3:机密)
     # 只有用户密级 >= 库密级 且 在 ACL 名单中 才能访问
@@ -109,7 +109,7 @@ class DocumentChunk(Base):
     # 冗余字段，用于快速按库过滤向量 (Partition Key)
     kb_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), nullable=False, index=True)
     
-    content: Mapped[str] = mapped_column(text("TEXT"), nullable=False)
+    content: Mapped[str] = mapped_column(Text, nullable=False)
     
     # 向量字段 (1536 维适配 OpenAI/bge-m3)
     embedding = mapped_column(Vector(1536))

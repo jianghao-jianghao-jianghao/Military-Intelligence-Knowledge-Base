@@ -1,7 +1,7 @@
 
 import uuid
 from datetime import datetime
-from sqlalchemy import String, Integer, Boolean, text, SmallInteger, DateTime, BigInteger
+from sqlalchemy import String, Integer, Boolean, text, SmallInteger, DateTime, BigInteger, Text
 from sqlalchemy.dialects.postgresql import UUID, JSONB, INET
 from sqlalchemy.orm import Mapped, mapped_column
 from sqlalchemy.sql import func
@@ -20,8 +20,8 @@ class FAQ(Base):
 
     id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, server_default=text("gen_random_uuid()"))
     
-    question: Mapped[str] = mapped_column(text("TEXT"), nullable=False)
-    answer: Mapped[str] = mapped_column(text("TEXT"), nullable=False)
+    question: Mapped[str] = mapped_column(Text, nullable=False)
+    answer: Mapped[str] = mapped_column(Text, nullable=False)
     
     # 向量字段 (1536 维适配 OpenAI/bge-m3)
     # 只有 APPROVED 状态的 FAQ 才会生成并更新向量

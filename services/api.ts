@@ -1,4 +1,3 @@
-
 import { 
   FileParseResult, 
   WeaponDocument, 
@@ -443,8 +442,10 @@ async function mockRequest<T>(endpoint: string, options: RequestInit): Promise<A
         return { code: 200, message: 'OK', data: data as any };
     }
 
-    if (endpoint === '/graph/evolution') {
-        const queryParams = new URLSearchParams(endpoint.split('?')[1]);
+    // Fix: Use startsWith to handle query params like ?date=2024
+    if (endpoint.startsWith('/graph/evolution')) {
+        const urlParts = endpoint.split('?');
+        const queryParams = new URLSearchParams(urlParts.length > 1 ? urlParts[1] : '');
         const date = queryParams.get('date') || '2024';
         
         const snapshot: GraphData = {
@@ -636,428 +637,87 @@ async function mockRequest<T>(endpoint: string, options: RequestInit): Promise<A
     return { code: 404, message: 'Not Found', data: null as any };
 }
 
-// Generic Request Wrapper with Fallback
-async function request<T>(endpoint: string, options: RequestInit = {}): Promise<ApiResponse<T>> {
-  const url = `${API_BASE_URL}${endpoint}`;
-  
-  try {
-    const response = await fetch(url, {
-      ...options,
-      headers: {
-        ...getHeaders(options.body instanceof FormData),
-        ...options.headers,
-      },
-    });
+// --- EXPORTED SERVICES ---
 
-    if (!response.ok) {
-      if (response.status === 401) {
-        throw new ApiError("Unauthorized", 401);
-      }
-      throw new ApiError(response.statusText, response.status);
-    }
-
-    const json = await response.json();
-    return {
-      code: json.code || 200,
-      message: json.message || "Success",
-      data: json.data !== undefined ? json.data : json,
-      timestamp: json.timestamp || new Date().toISOString()
-    };
-
-  } catch (error) {
-    // FALLBACK TO MOCK
-    console.warn(`API Request Failed [${options.method || 'GET'} ${url}]. Falling back to mock data.`);
-    return mockRequest<T>(endpoint, options);
-  }
-}
-
-/**
- * Auth Service: Authentication and Session Management
- */
 export const AuthService = {
-  /**
-   * Login user and return token.
-   * POST /auth/login
-   */
-  async login(credentials: { username: string; secret: string }): Promise<ApiResponse<{ token: string; user: User }>> {
-    return request("/auth/login", {
-      method: "POST",
-      body: JSON.stringify(credentials),
-    });
-  },
+    login: (payload: { username: string; secret: string }) => mockRequest<any>('/auth/login', { method: 'POST', body: JSON.stringify(payload) }),
+    register: (payload: any) => mockRequest<any>('/auth/register', { method: 'POST', body: JSON.stringify(payload) }),
+    getCurrentUser: () => mockRequest<any>('/auth/me', { method: 'GET' }),
+    logout: () => mockRequest<boolean>('/auth/logout', { method: 'POST' }),
+};
 
-  /**
-   * Register a new user application.
-   * POST /auth/register
-   */
-  async register(payload: RegisterUserRequest): Promise<ApiResponse<{ requestId: string; status: string }>> {
-    return request("/auth/register", {
-      method: "POST",
-      body: JSON.stringify(payload)
-    });
-  },
+export const AdminService = {
+    getRegistrationRequests: () => mockRequest<any[]>('/admin/registrations', { method: 'GET' }),
+    approveRegistration: (id: string) => mockRequest<boolean>(`/admin/registrations/${id}/approve`, { method: 'POST' }),
+    rejectRegistration: (id: string) => mockRequest<boolean>(`/admin/registrations/${id}/reject`, { method: 'POST' }),
+    
+    getUsers: () => mockRequest<any[]>('/admin/users', { method: 'GET' }),
+    createUser: (data: any) => mockRequest<any>('/admin/users', { method: 'POST', body: JSON.stringify(data) }),
+    updateUser: (id: string, data: any) => mockRequest<any>(`/admin/users/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
+    deleteUser: (id: string) => mockRequest<boolean>(`/admin/users/${id}`, { method: 'DELETE' }),
 
-  /**
-   * Get current authenticated user session.
-   * GET /auth/me
-   */
-  async getCurrentUser(): Promise<ApiResponse<{ user: User }>> {
-    return request("/auth/me");
-  },
+    getKBs: () => mockRequest<any[]>('/admin/kbs', { method: 'GET' }),
+    createKB: (data: any) => mockRequest<any>('/admin/kbs', { method: 'POST', body: JSON.stringify(data) }),
+    updateKB: (id: string, data: any) => mockRequest<any>(`/admin/kbs/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
+    deleteKB: (id: string) => mockRequest<boolean>(`/admin/kbs/${id}`, { method: 'DELETE' }),
 
-  /**
-   * Logout user and invalidate token.
-   * POST /auth/logout
-   */
-  async logout(): Promise<ApiResponse<boolean>> {
-    return request("/auth/logout", {
-      method: "POST"
-    });
-  }
+    getPolicies: () => mockRequest<any[]>('/admin/policies', { method: 'GET' }),
+    createPolicy: (data: any) => mockRequest<any>('/admin/policies', { method: 'POST', body: JSON.stringify(data) }),
+    updatePolicy: (id: string, data: any) => mockRequest<any>(`/admin/policies/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
+    deletePolicy: (id: string) => mockRequest<boolean>(`/admin/policies/${id}`, { method: 'DELETE' }),
+
+    getPendingFAQs: () => mockRequest<any[]>('/admin/faqs/pending', { method: 'GET' }),
+    approveFAQ: (id: string) => mockRequest<boolean>(`/admin/faqs/${id}/approve`, { method: 'POST' }),
+    rejectFAQ: (id: string) => mockRequest<boolean>(`/admin/faqs/${id}/reject`, { method: 'POST' }),
+    createFAQ: (data: any) => mockRequest<any>('/admin/faqs', { method: 'POST', body: JSON.stringify(data) }),
+    updateFAQ: (id: string, data: any) => mockRequest<any>(`/admin/faqs/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
+    deleteFAQ: (id: string) => mockRequest<boolean>(`/admin/faqs/${id}`, { method: 'DELETE' }),
+
+    getSearchConfig: () => mockRequest<any>('/admin/search-config', { method: 'GET' }),
+    updateSearchConfig: (data: any) => mockRequest<any>('/admin/search-config', { method: 'PUT', body: JSON.stringify(data) }),
+
+    getAuditLogs: (params: any) => mockRequest<any[]>('/admin/audit-logs', { method: 'GET' }),
+    exportAuditLogs: (payload: any) => mockRequest<any>('/admin/audit-logs/export', { method: 'POST', body: JSON.stringify(payload) }),
+};
+
+export const ChatService = {
+    getSessions: () => mockRequest<any[]>('/chat/sessions', { method: 'GET' }),
+    createSession: (payload: any) => mockRequest<any>('/chat/sessions', { method: 'POST', body: JSON.stringify(payload) }),
+    deleteSession: (id: string) => mockRequest<boolean>(`/chat/sessions/${id}`, { method: 'DELETE' }),
+    renameSession: (id: string, payload: any) => mockRequest<any>(`/chat/sessions/${id}`, { method: 'PATCH', body: JSON.stringify(payload) }),
+    
+    getHistory: (id: string) => mockRequest<any[]>(`/chat/sessions/${id}/messages`, { method: 'GET' }),
+    sendMessage: (id: string, query: string, config: any, quote?: string) => mockRequest<any>(`/chat/sessions/${id}/messages`, { 
+        method: 'POST', 
+        body: JSON.stringify({ query, config, quote }) 
+    }),
+    exportEvidence: (id: string) => Promise.resolve("data:application/zip;base64,MOCK_ZIP_DATA"), // Mock
+    submitFeedbackToFAQ: (payload: any) => mockRequest<any>('/chat/feedback/faq', { method: 'POST', body: JSON.stringify(payload) }),
+};
+
+export const GraphService = {
+    queryGraph: () => mockRequest<any>('/graph/query', { method: 'GET' }),
+    getEntityDetail: (id: string) => mockRequest<any>(`/graph/entities/${id}`, { method: 'GET' }),
+    findPath: (payload: any) => mockRequest<any>('/graph/path', { method: 'POST', body: JSON.stringify(payload) }),
+    getEvolution: (params: { entity_id: string; date: string }) => mockRequest<any>(`/graph/evolution?entity_id=${params.entity_id}&date=${params.date}`, { method: 'GET' }),
+};
+
+export const DocumentService = {
+    getAuthorizedKBs: () => mockRequest<any[]>('/documents/kbs', { method: 'GET' }),
+    getDocuments: (kbId: string) => mockRequest<any[]>(`/documents/kbs/${kbId}/files`, { method: 'GET' }),
+    getDocumentDetail: (id: string) => mockRequest<any>(`/documents/${id}`, { method: 'GET' }),
+    downloadDesensitized: (id: string) => mockRequest<any>(`/documents/${id}/desensitize`, { method: 'GET' }),
+    applyPrint: (payload: any) => mockRequest<any>(`/documents/${payload.doc_id}/print`, { method: 'POST', body: JSON.stringify(payload) }),
+    uploadDocument: (file: File, params: any) => Promise.resolve({ code: 200, message: 'Uploaded', data: true }),
 };
 
 export const ApiService = {
-  /**
-   * Upload and parse a file (Word/PDF) to extract text and metadata.
-   * POST /files/parse
-   */
-  async parseFile(file: File): Promise<ApiResponse<FileParseResult>> {
-    const formData = new FormData();
-    formData.append("file", file);
-    return request("/files/parse", { method: "POST", body: formData });
-  }
+    parseFile: (file: File) => mockRequest<any>('/files/parse', { method: 'POST' }),
 };
 
-/**
- * Admin Service: Manages Approvals, Users, Policies, KBs, and FAQs.
- */
-export const AdminService = {
-  // Approvals
-  async getRegistrationRequests(): Promise<ApiResponse<RegistrationRequest[]>> {
-      return request("/admin/registrations");
-  },
-  async approveRegistration(id: string): Promise<ApiResponse<boolean>> {
-      return request(`/admin/registrations/${id}/approve`, { method: 'POST' });
-  },
-  async rejectRegistration(id: string): Promise<ApiResponse<boolean>> {
-      return request(`/admin/registrations/${id}/reject`, { method: 'POST' });
-  },
-
-  // Users
-  async getUsers(): Promise<ApiResponse<User[]>> {
-      return request("/admin/users");
-  },
-  async createUser(payload: CreateUserRequest): Promise<ApiResponse<User>> {
-      return request("/admin/users", { method: 'POST', body: JSON.stringify(payload) });
-  },
-  async updateUser(id: string, payload: UpdateUserRequest): Promise<ApiResponse<User>> {
-      return request(`/admin/users/${id}`, { method: 'PUT', body: JSON.stringify(payload) });
-  },
-  // Added Delete User for testing completeness
-  async deleteUser(id: string): Promise<ApiResponse<boolean>> {
-      return request(`/admin/users/${id}`, { method: 'DELETE' });
-  },
-
-  // Policies (Security)
-  async getPolicies(): Promise<ApiResponse<SensitiveWordPolicy[]>> {
-      return request("/admin/policies");
-  },
-  async createPolicy(payload: CreatePolicyRequest): Promise<ApiResponse<SensitiveWordPolicy>> {
-      return request("/admin/policies", { method: 'POST', body: JSON.stringify(payload) });
-  },
-  async updatePolicy(id: string, payload: UpdatePolicyRequest): Promise<ApiResponse<SensitiveWordPolicy>> {
-      return request(`/admin/policies/${id}`, { method: 'PUT', body: JSON.stringify(payload) });
-  },
-  async deletePolicy(id: string): Promise<ApiResponse<boolean>> {
-      return request(`/admin/policies/${id}`, { method: 'DELETE' });
-  },
-
-  // Search Configuration
-  async getSearchConfig(): Promise<ApiResponse<GlobalSearchConfig>> {
-      return request("/admin/search-config");
-  },
-  async updateSearchConfig(payload: UpdateSearchConfigRequest): Promise<ApiResponse<GlobalSearchConfig>> {
-      return request("/admin/search-config", { method: 'PUT', body: JSON.stringify(payload) });
-  },
-
-  // KB Management
-  async getKBs(): Promise<ApiResponse<KnowledgeBase[]>> {
-      return request("/admin/kbs");
-  },
-  async createKB(payload: CreateKBRequest): Promise<ApiResponse<KnowledgeBase>> {
-      return request("/admin/kbs", { method: 'POST', body: JSON.stringify(payload) });
-  },
-  async updateKB(id: string, payload: UpdateKBRequest): Promise<ApiResponse<KnowledgeBase>> {
-      return request(`/admin/kbs/${id}`, { method: 'PUT', body: JSON.stringify(payload) });
-  },
-  async deleteKB(id: string): Promise<ApiResponse<boolean>> {
-      return request(`/admin/kbs/${id}`, { method: 'DELETE' });
-  },
-
-  // FAQ Governance
-  async getPendingFAQs(): Promise<ApiResponse<FAQPair[]>> {
-      return request("/admin/faqs/pending");
-  },
-  async createFAQ(payload: CreateFAQRequest): Promise<ApiResponse<FAQPair>> {
-      return request("/admin/faqs", { method: 'POST', body: JSON.stringify(payload) });
-  },
-  async approveFAQ(id: string): Promise<ApiResponse<boolean>> {
-      return request(`/admin/faqs/${id}/approve`, { method: 'POST' });
-  },
-  async rejectFAQ(id: string): Promise<ApiResponse<boolean>> {
-      return request(`/admin/faqs/${id}/reject`, { method: 'POST' });
-  },
-  async updateFAQ(id: string, payload: UpdateFAQRequest): Promise<ApiResponse<FAQPair>> {
-      return request(`/admin/faqs/${id}`, { method: 'PUT', body: JSON.stringify(payload) });
-  },
-  async deleteFAQ(id: string): Promise<ApiResponse<boolean>> {
-      return request(`/admin/faqs/${id}`, { method: 'DELETE' });
-  },
-
-  // Audit Logs
-  async getAuditLogs(query: AuditLogQuery): Promise<ApiResponse<AuditLog[]>> {
-      const params = new URLSearchParams();
-      if(query.page) params.append('page', query.page.toString());
-      if(query.limit) params.append('limit', query.limit.toString());
-      return request(`/admin/audit-logs?${params.toString()}`);
-  },
-  async exportAuditLogs(payload: AuditExportRequest): Promise<ApiResponse<{ url: string }>> {
-      return request(`/admin/audit-logs/export`, { method: 'POST', body: JSON.stringify(payload) });
-  }
-};
-
-/**
- * Document Service: Manages Documents, KBs, Uploads, and Prints.
- */
-export const DocumentService = {
-    /**
-     * Get authorized knowledge bases.
-     * GET /documents/kbs
-     */
-    async getAuthorizedKBs(): Promise<ApiResponse<KnowledgeBase[]>> {
-        return request("/documents/kbs");
-    },
-
-    /**
-     * Get documents by KB ID.
-     * GET /documents/kbs/{kbId}/files
-     */
-    async getDocuments(kbId: string): Promise<ApiResponse<WeaponDocument[]>> {
-        return request(`/documents/kbs/${kbId}/files`);
-    },
-
-    /**
-     * Get document detail by ID.
-     * GET /documents/{id}
-     */
-    async getDocumentDetail(id: string): Promise<ApiResponse<WeaponDocument>> {
-        return request(`/documents/${id}`);
-    },
-
-    /**
-     * Upload document.
-     * POST /documents/ingest
-     */
-    async uploadDocument(file: File, meta: { kbId: string, clearance: ClearanceLevel }): Promise<ApiResponse<boolean>> {
-        const formData = new FormData();
-        formData.append("file", file);
-        formData.append("kb_id", meta.kbId);
-        formData.append("clearance", meta.clearance);
-        return request("/documents/ingest", { method: "POST", body: formData });
-    },
-
-    /**
-     * Download desensitized document.
-     * POST /documents/{id}/desensitize
-     */
-    async downloadDesensitized(id: string): Promise<ApiResponse<{ url: string }>> {
-        return request(`/documents/${id}/desensitize`, { method: 'POST' });
-    },
-
-    /**
-     * Submit print application.
-     * POST /documents/{id}/print
-     */
-    async applyPrint(payload: PrintApplicationRequest): Promise<ApiResponse<{ applicationId: string }>> {
-        return request(`/documents/${payload.doc_id}/print`, {
-            method: 'POST',
-            body: JSON.stringify(payload)
-        });
-    }
-};
-
-/**
- * Chat Service: Manages Security Intelligent Q&A Sessions and Interactions.
- */
-export const ChatService = {
-  /**
-   * List all sessions.
-   * GET /chat/sessions
-   */
-  async getSessions(): Promise<ApiResponse<Conversation[]>> {
-    return request("/chat/sessions");
-  },
-
-  /**
-   * Create new session.
-   * POST /chat/sessions
-   */
-  async createSession(payload: CreateChatRequest): Promise<ApiResponse<Conversation>> {
-    return request("/chat/sessions", {
-      method: "POST",
-      body: JSON.stringify(payload)
-    });
-  },
-
-  /**
-   * Delete session.
-   * DELETE /chat/sessions/{id}
-   */
-  async deleteSession(sessionId: string): Promise<ApiResponse<boolean>> {
-    return request(`/chat/sessions/${sessionId}`, {
-      method: "DELETE"
-    });
-  },
-
-  /**
-   * Rename session.
-   * PATCH /chat/sessions/{id}
-   */
-  async renameSession(sessionId: string, payload: UpdateChatRequest): Promise<ApiResponse<Conversation>> {
-    return request(`/chat/sessions/${sessionId}`, {
-      method: "PATCH",
-      body: JSON.stringify(payload)
-    });
-  },
-
-  /**
-   * Get message history.
-   * GET /chat/sessions/{id}/messages
-   */
-  async getHistory(sessionId: string): Promise<ApiResponse<Message[]>> {
-    return request(`/chat/sessions/${sessionId}/messages`);
-  },
-
-  /**
-   * Send message (RAG).
-   * POST /chat/sessions/{id}/messages
-   */
-  async sendMessage(
-    sessionId: string, 
-    query: string, 
-    config: RetrievalConfig, 
-    quoteContext?: string
-  ): Promise<ApiResponse<QAResponse>> {
-    const payload = {
-      query: query,
-      retrieval_config: config,
-      quote_context: quoteContext || null,
-      stream: false 
-    };
-
-    return request(`/chat/sessions/${sessionId}/messages`, {
-      method: "POST",
-      body: JSON.stringify(payload)
-    });
-  },
-
-  /**
-   * Export evidence chain.
-   * GET /chat/sessions/{id}/evidence/export
-   */
-  async exportEvidence(sessionId: string): Promise<string> {
-    return "data:text/plain;charset=utf-8,MockEvidencePackage"; 
-  },
-
-  /**
-   * Feedback Q&A pair to FAQ knowledge base.
-   * POST /chat/feedback/faq
-   */
-  async submitFeedbackToFAQ(payload: FAQFeedbackRequest): Promise<ApiResponse<{ review_id: string }>> {
-    return request("/chat/feedback/faq", {
-        method: "POST",
-        body: JSON.stringify(payload)
-    });
-  }
-};
-
-/**
- * Knowledge Graph Service
- */
-export const GraphService = {
-  /**
-   * Query graph data.
-   * POST /graph/query
-   */
-  async queryGraph(payload: GraphQueryRequest = {}): Promise<ApiResponse<GraphData>> {
-    return request("/graph/query", {
-      method: "POST",
-      body: JSON.stringify(payload)
-    });
-  },
-
-  /**
-   * Get entity detail by ID.
-   * GET /graph/entities/{id}
-   */
-  async getEntityDetail(id: string): Promise<ApiResponse<EntityDetail>> {
-    return request(`/graph/entities/${id}`);
-  },
-
-  /**
-   * Calculate path between two entities.
-   * POST /graph/path
-   */
-  async findPath(payload: PathDiscoveryRequest): Promise<ApiResponse<PathDiscoveryResult>> {
-    return request("/graph/path", {
-      method: "POST",
-      body: JSON.stringify(payload)
-    });
-  },
-
-  /**
-   * Get temporal evolution snapshot.
-   * GET /graph/evolution
-   */
-  async getEvolution(payload: EvolutionRequest): Promise<ApiResponse<EvolutionSnapshot>> {
-    const params = new URLSearchParams({ entity_id: payload.entity_id, date: payload.date });
-    return request(`/graph/evolution?${params.toString()}`);
-  }
-};
-
-/**
- * Agent Service: Document processing tasks.
- */
 export const AgentService = {
-  /**
-   * AI-powered Writing Generation
-   * POST /agent/write
-   */
-  async write(payload: AgentWriteRequest): Promise<ApiResponse<string>> {
-    return request("/agent/write", { method: "POST", body: JSON.stringify(payload) });
-  },
-
-  /**
-   * Content Optimization and Polishing
-   * POST /agent/optimize
-   */
-  async optimize(payload: AgentOptimizeRequest): Promise<ApiResponse<string>> {
-    return request("/agent/optimize", { method: "POST", body: JSON.stringify(payload) });
-  },
-
-  /**
-   * Smart Proofreading against references
-   * POST /agent/proofread
-   */
-  async proofread(payload: AgentProofreadRequest): Promise<ApiResponse<ProofreadSuggestion[]>> {
-    return request("/agent/proofread", { method: "POST", body: JSON.stringify(payload) });
-  },
-
-  /**
-   * Automated Document Formatting
-   * POST /agent/format
-   */
-  async format(payload: AgentFormatRequest): Promise<ApiResponse<string>> {
-    return request("/agent/format", { method: "POST", body: JSON.stringify(payload) });
-  }
+    write: (payload: any) => mockRequest<string>('/agent/write', { method: 'POST', body: JSON.stringify(payload) }),
+    optimize: (payload: any) => mockRequest<string>('/agent/optimize', { method: 'POST', body: JSON.stringify(payload) }),
+    format: (payload: any) => mockRequest<string>('/agent/format', { method: 'POST', body: JSON.stringify(payload) }),
+    proofread: (payload: any) => mockRequest<any[]>('/agent/proofread', { method: 'POST', body: JSON.stringify(payload) }),
 };

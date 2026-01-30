@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { 
   AuthService, 
@@ -151,6 +150,26 @@ const SystemHealthCheck: React.FC = () => {
             if (!printRes.data.applicationId) throw new Error('Print application failed');
         }
     },
+    {
+        id: 'doc-2',
+        module: 'Documents',
+        name: 'Archive Retrieval',
+        description: 'List KBs -> List Files -> Get File Detail.',
+        status: 'idle',
+        run: async () => {
+            const kbs = await DocumentService.getAuthorizedKBs();
+            if (kbs.data.length === 0) throw new Error('No Authorized KBs found');
+            
+            const docs = await DocumentService.getDocuments(kbs.data[0].id);
+            // It's possible to have empty KBs, so we don't throw if empty, but we check call success
+            if (!Array.isArray(docs.data)) throw new Error('Invalid Docs response');
+
+            if (docs.data.length > 0) {
+                const detail = await DocumentService.getDocumentDetail(docs.data[0].id);
+                if (detail.data.id !== docs.data[0].id) throw new Error('Document detail mismatch');
+            }
+        }
+    },
 
     // --- 4. QA & FEEDBACK LOOP ---
     {
@@ -171,7 +190,27 @@ const SystemHealthCheck: React.FC = () => {
       }
     },
     {
-        id: 'chat-2',
+      id: 'chat-2',
+      module: 'QA Engine',
+      name: 'Chat Management Ops',
+      description: 'Rename Session -> Export Evidence.',
+      status: 'idle',
+      run: async () => {
+        const s = await ChatService.createSession({ title: 'Orig', bound_kb_ids: ['kb-1'] });
+        
+        // Rename
+        const updated = await ChatService.renameSession(s.data.id, { title: 'Renamed' });
+        if (updated.data.title !== 'Renamed') throw new Error('Rename failed');
+
+        // Export Evidence
+        const evidenceUrl = await ChatService.exportEvidence(s.data.id);
+        if (!evidenceUrl.startsWith('data:')) throw new Error('Evidence export failed');
+
+        await ChatService.deleteSession(s.data.id);
+      }
+    },
+    {
+        id: 'chat-3',
         module: 'QA Engine',
         name: 'FAQ Governance Loop',
         description: 'Submit Feedback -> Admin List -> Approve/Reject.',
@@ -197,18 +236,22 @@ const SystemHealthCheck: React.FC = () => {
         id: 'graph-1',
         module: 'Knowledge Graph',
         name: 'Advanced Graph Analysis',
-        description: 'Node Query -> Path Discovery -> Temporal Evolution.',
+        description: 'Node Query -> Entity Detail -> Path Discovery -> Temporal Evolution.',
         status: 'idle',
         run: async () => {
             // 1. Basic Query
             const g = await GraphService.queryGraph();
             if (g.data.nodes.length === 0) throw new Error('Graph nodes missing');
 
-            // 2. Path Discovery
+            // 2. Entity Detail
+            const entity = await GraphService.getEntityDetail(g.data.nodes[0].id);
+            if (!entity.data.name) throw new Error('Entity detail missing');
+
+            // 3. Path Discovery
             const path = await GraphService.findPath({ start_entity_id: 'n1', end_entity_id: 'n2' });
             if (!path.data.paths) throw new Error('Path discovery failed');
 
-            // 3. Evolution
+            // 4. Evolution
             const evo = await GraphService.getEvolution({ entity_id: 'n1', date: '2024' });
             if (!evo.data.events) throw new Error('Evolution events missing');
         }
@@ -248,12 +291,22 @@ const SystemHealthCheck: React.FC = () => {
         id: 'agent-1',
         module: 'Agentic',
         name: 'Agent Capability Check',
-        description: 'Verify Write & Proofread agents.',
+        description: 'Write -> Optimize -> Format -> Proofread.',
         status: 'idle',
         run: async () => {
+            // Write
             const write = await AgentService.write({ topic: 'Test', outline: '1. A' });
             if (!write.data) throw new Error('Writing agent failed');
 
+            // Optimize
+            const opt = await AgentService.optimize({ content: 'Draft', instruction: 'Better' });
+            if (!opt.data) throw new Error('Optimize agent failed');
+
+            // Format
+            const fmt = await AgentService.format({ content: 'Draft', style: 'Official' });
+            if (!fmt.data) throw new Error('Format agent failed');
+
+            // Proofread
             const proof = await AgentService.proofread({ content: 'Test', reference: 'Ref' });
             if (!Array.isArray(proof.data)) throw new Error('Proofread format invalid');
         }

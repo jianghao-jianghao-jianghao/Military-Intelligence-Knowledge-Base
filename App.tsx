@@ -8,7 +8,7 @@ import AuthView from './components/AuthView.tsx';
 import DocProcessingView from './components/DocProcessingView.tsx';
 import { Icons, MOCK_KBS, MOCK_DOCS } from './constants.tsx';
 import { User, ClearanceLevel, WeaponDocument } from './types.ts';
-import { ApiService } from './services/api.ts';
+import { ApiService, AuthService } from './services/api.ts';
 
 const App: React.FC = () => {
   const [activeTab, setActiveTab] = useState('qa');
@@ -16,8 +16,29 @@ const App: React.FC = () => {
   const [currentUser, setCurrentUser] = useState<User | null>(null);
   const [viewingDoc, setViewingDoc] = useState<WeaponDocument | null>(null);
   const [isUploading, setIsUploading] = useState(false);
+  const [isInitializing, setIsInitializing] = useState(true);
 
+  // Initialize Session
   useEffect(() => {
+    const initSession = async () => {
+      try {
+        const token = localStorage.getItem('auth_token');
+        if (token) {
+          const res = await AuthService.getCurrentUser();
+          if (res.data?.user) {
+            setCurrentUser(res.data.user);
+          }
+        }
+      } catch (error) {
+        console.warn("Session restore failed, redirecting to login.");
+        localStorage.removeItem('auth_token');
+      } finally {
+        setIsInitializing(false);
+      }
+    };
+    
+    initSession();
+
     if (theme === 'dark') {
       document.documentElement.classList.add('dark');
     } else {
@@ -29,6 +50,17 @@ const App: React.FC = () => {
     setTheme(prev => prev === 'light' ? 'dark' : 'light');
   };
 
+  const handleLogout = async () => {
+    try {
+      await AuthService.logout();
+    } catch (e) {
+      console.warn("Logout API failed, forcing local cleanup");
+    } finally {
+      localStorage.removeItem('auth_token');
+      setCurrentUser(null);
+    }
+  };
+
   const handleOpenDocument = async (docId: string) => {
       // Use the service to fetch doc
       const res = await ApiService.getDocumentById(docId);
@@ -38,6 +70,10 @@ const App: React.FC = () => {
           alert(`文档 (ID: ${docId}) 不存在或权限不足`);
       }
   };
+
+  if (isInitializing) {
+     return <div className="h-screen w-full bg-[#0d1117] flex items-center justify-center text-[#8b949e] text-xs font-mono">INITIALIZING SECURE CONNECTION...</div>;
+  }
 
   if (!currentUser) {
     return <AuthView onLogin={setCurrentUser} />;
@@ -130,7 +166,7 @@ const App: React.FC = () => {
       theme={theme}
       onToggleTheme={toggleTheme}
       currentUser={currentUser}
-      onLogout={() => setCurrentUser(null)}
+      onLogout={handleLogout}
     >
       {renderContent()}
 

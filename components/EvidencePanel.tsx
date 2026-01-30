@@ -6,10 +6,11 @@ interface EvidencePanelProps {
   provenance: Provenance[];
   onEvidenceClick?: (p: Provenance) => void;
   activeId?: string;
-  onOpenDocument?: (docId: string) => void; // Added prop for navigation
+  onOpenDocument?: (docId: string) => void; 
+  onDownloadPackage?: () => void; // Added prop for download
 }
 
-const EvidencePanel: React.FC<EvidencePanelProps> = ({ provenance, onEvidenceClick, activeId, onOpenDocument }) => {
+const EvidencePanel: React.FC<EvidencePanelProps> = ({ provenance, onEvidenceClick, activeId, onOpenDocument, onDownloadPackage }) => {
   return (
     <div className="w-[340px] border-l border-[#d0d7de] dark:border-[#30363d] bg-[#f6f8fa] dark:bg-[#0d1117] flex flex-col h-full overflow-hidden transition-colors duration-200">
       <div className="p-4 border-b border-[#d0d7de] dark:border-[#30363d] flex justify-between items-center bg-white dark:bg-[#161b22] h-14">
@@ -67,7 +68,11 @@ const EvidencePanel: React.FC<EvidencePanelProps> = ({ provenance, onEvidenceCli
       </div>
       
       <div className="p-4 bg-white dark:bg-[#161b22] border-t border-[#d0d7de] dark:border-[#30363d]">
-         <button className="w-full py-2.5 text-xs font-bold text-[#24292f] dark:text-[#c9d1d9] bg-[#f6f8fa] dark:bg-[#21262d] border border-[#d0d7de] dark:border-[#30363d] rounded-md hover:bg-[#eaeef2] dark:hover:bg-[#30363d] transition-colors flex items-center justify-center gap-2">
+         <button 
+            onClick={onDownloadPackage}
+            disabled={provenance.length === 0}
+            className="w-full py-2.5 text-xs font-bold text-[#24292f] dark:text-[#c9d1d9] bg-[#f6f8fa] dark:bg-[#21262d] border border-[#d0d7de] dark:border-[#30363d] rounded-md hover:bg-[#eaeef2] dark:hover:bg-[#30363d] transition-colors flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+         >
            <svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor"><path d="M7.47 10.78a.75.75 0 0 0 1.06 0l3.75-3.75a.75.75 0 0 0-1.06-1.06L8.75 8.44V1.75a.75.75 0 0 0-1.5 0v6.69L4.78 5.97a.75.75 0 0 0-1.06 1.06l3.75 3.75ZM3.75 13a.75.75 0 0 0 0 1.5h8.5a.75.75 0 0 0 0-1.5h-8.5Z"></path></svg>
            打包下载完整证据集
          </button>

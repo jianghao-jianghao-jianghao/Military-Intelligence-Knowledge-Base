@@ -1,19 +1,10 @@
 
 import React, { useState, useRef } from 'react';
-import { processDocument } from '../services/geminiService.ts';
-import { ApiService } from '../services/api.ts';
+import { ApiService, AgentService } from '../services/api.ts';
 import { Icons } from '../constants.tsx';
+import { ProofreadSuggestion } from '../types.ts';
 
 type Mode = 'write' | 'optimize' | 'proofread' | 'format';
-
-interface ProofreadSuggestion {
-  id: number;
-  type: string;
-  original: string;
-  suggestion: string;
-  reason: string;
-  status?: 'accepted' | 'rejected' | 'pending';
-}
 
 const DocProcessingView: React.FC = () => {
   const [mode, setMode] = useState<Mode>('write');
@@ -78,45 +69,54 @@ const DocProcessingView: React.FC = () => {
   const handleProcess = async () => {
     setIsProcessing(true);
     setSuggestions([]); 
-    let primaryInput = inputContent;
-    let contextInput = extraContext;
-
-    // Adapt inputs based on mode
-    if (mode === 'write') {
-      primaryInput = writeTopic;
-      contextInput = writePoints;
-      if (!writeTopic.trim()) {
-        alert("请输入文档主题");
-        setIsProcessing(false);
-        return;
-      }
-    } else if (mode === 'format') {
-       // For format, primary input is the content, context is doc type
-       contextInput = docType;
-    }
-
-    if (mode !== 'write' && !primaryInput.trim()) {
-        alert("请输入需要处理的文本内容");
-        setIsProcessing(false);
-        return;
-    }
-
+    
     try {
-      // Logic for Proofreading (Agent Mode)
-      if (mode === 'proofread') {
-          const resultJson = await processDocument(mode, primaryInput, contextInput);
-          const parsedSuggestions = JSON.parse(resultJson);
-          setSuggestions(parsedSuggestions.map((s: any) => ({ ...s, status: 'pending' })));
-          // Initially, the output content is the same as input, we will patch it
-          setOutputContent(primaryInput);
-      } else {
-          // Standard Text/HTML Generation
-          const result = await processDocument(mode, primaryInput, contextInput, docType);
-          setOutputContent(result);
+      if (mode === 'write') {
+          if (!writeTopic.trim()) { throw new Error("请输入文档主题"); }
+          
+          const response = await AgentService.write({
+              topic: writeTopic,
+              outline: writePoints
+          });
+          setOutputContent(response.data);
+
+      } else if (mode === 'optimize') {
+          if (!inputContent.trim()) { throw new Error("请输入待优化内容"); }
+          
+          const response = await AgentService.optimize({
+              content: inputContent,
+              instruction: extraContext
+          });
+          setOutputContent(response.data);
+
+      } else if (mode === 'proofread') {
+          if (!inputContent.trim()) { throw new Error("请输入待校对草稿"); }
+          
+          const response = await AgentService.proofread({
+              content: inputContent,
+              reference: extraContext
+          });
+          
+          // API returns typed array directly
+          const sugs = response.data.map(s => ({ ...s, status: 'pending' as const }));
+          setSuggestions(sugs);
+          setOutputContent(inputContent); // Initial view is the original input
+
+      } else if (mode === 'format') {
+          if (!inputContent.trim()) { throw new Error("请输入待排版内容"); }
+          
+          const response = await AgentService.format({
+              content: inputContent,
+              style: docType
+          });
+          setOutputContent(response.data);
       }
+
     } catch (e) {
       console.error(e);
-      setOutputContent("系统处理发生错误，请稍后重试。");
+      const msg = e instanceof Error ? e.message : "系统处理发生错误，请稍后重试。";
+      alert(msg);
+      if(mode !== 'proofread') setOutputContent(`[错误] ${msg}`);
     } finally {
       setIsProcessing(false);
     }

@@ -1,7 +1,8 @@
 
 import React, { useState } from 'react';
 import { Icons } from '../constants.tsx';
-import { UserRole, ClearanceLevel, User } from '../types.ts';
+import { UserRole, ClearanceLevel, User, RegisterUserRequest } from '../types.ts';
+import { AuthService } from '../services/api.ts';
 
 interface AuthViewProps {
   onLogin: (user: User) => void;
@@ -10,6 +11,7 @@ interface AuthViewProps {
 const AuthView: React.FC<AuthViewProps> = ({ onLogin }) => {
   const [viewState, setViewState] = useState<'login' | 'register' | 'pending'>('login');
   const [loading, setLoading] = useState(false);
+  const [errorMsg, setErrorMsg] = useState('');
 
   // Form states
   const [username, setUsername] = useState('');
@@ -19,28 +21,39 @@ const AuthView: React.FC<AuthViewProps> = ({ onLogin }) => {
   const [clearance, setClearance] = useState(ClearanceLevel.INTERNAL);
   const [reason, setReason] = useState('');
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
-    
-    setTimeout(() => {
-      setLoading(false);
+    setErrorMsg('');
+
+    try {
       if (viewState === 'login') {
-        // Updated to include all mandatory fields for User interface
-        onLogin({
-          id: '1',
-          name: '陆研工',
-          username: 'luyangong',
-          role: UserRole.SUPER_ADMIN,
-          roleId: 'r1',
-          departmentId: 'd1',
-          clearance: ClearanceLevel.SECRET,
-          status: 'ACTIVE'
-        });
+        const response = await AuthService.login({ username, secret: password });
+        const { token, user } = response.data;
+        
+        // Save token and update state
+        localStorage.setItem('auth_token', token);
+        onLogin(user);
+        
       } else {
+        const payload: RegisterUserRequest = {
+          fullName,
+          username,
+          password,
+          departmentId: dept,
+          intendedClearance: clearance,
+          justification: reason
+        };
+        
+        await AuthService.register(payload);
         setViewState('pending');
       }
-    }, 1500);
+    } catch (err) {
+      console.error(err);
+      setErrorMsg("认证失败，请检查账号密码或网络连接。");
+    } finally {
+      setLoading(false);
+    }
   };
 
   if (viewState === 'pending') {
@@ -52,7 +65,7 @@ const AuthView: React.FC<AuthViewProps> = ({ onLogin }) => {
            </div>
            <h2 className="text-2xl font-bold text-[#f0f6fc]">申请已提交审计</h2>
            <p className="text-sm text-[#8b949e] leading-relaxed">
-             您的注册请求正处于【兵工研制大脑】安全委员会审批中。审计编号：<span className="font-mono text-yellow-500">REQ-82910</span>
+             您的注册请求正处于【兵工研制大脑】安全委员会审批中。
            </p>
            <div className="bg-[#0d1117] p-4 rounded-md border border-[#30363d] text-left space-y-2">
               <div className="flex justify-between text-[10px] font-bold uppercase text-[#57606a]">
@@ -87,6 +100,12 @@ const AuthView: React.FC<AuthViewProps> = ({ onLogin }) => {
         </div>
 
         <form onSubmit={handleSubmit} className="bg-[#161b22] border border-[#30363d] p-8 rounded-xl shadow-2xl space-y-5">
+          {errorMsg && (
+             <div className="bg-red-500/10 border border-red-500/20 text-red-400 text-xs p-3 rounded">
+               ⚠️ {errorMsg}
+             </div>
+          )}
+          
           {viewState === 'register' && (
             <div className="space-y-4 animate-in slide-in-from-top-2 duration-300">
               <div className="space-y-1">
@@ -170,7 +189,7 @@ const AuthView: React.FC<AuthViewProps> = ({ onLogin }) => {
           <div className="text-center pt-2">
             <button 
               type="button"
-              onClick={() => setViewState(viewState === 'login' ? 'register' : 'login')}
+              onClick={() => { setViewState(viewState === 'login' ? 'register' : 'login'); setErrorMsg(''); }}
               className="text-xs text-[#58a6ff] hover:underline"
             >
               {viewState === 'login' ? '新成员？申请研制授权' : '已有授权账号？立即校验'}

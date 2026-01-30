@@ -30,22 +30,24 @@ export enum Permission {
   DOC_PROCESS = '智能文档处理'
 }
 
-// --- API Response Wrappers (For Backend Prep) ---
+// --- API Response Wrappers (Robust Backend Contract) ---
 export interface ApiResponse<T> {
   code: number;
   message: string;
   data: T;
-  timestamp: string;
+  timestamp?: string;
+  trace_id?: string; // For distributed tracing
 }
 
 export interface FileParseResult {
   fileName: string;
   fileType: string;
-  content: string; // Extracted plain text
+  content: string; 
   metadata?: {
     pageCount?: number;
     author?: string;
-    detectedType?: string; // e.g., 'Official Document'
+    detectedType?: string;
+    processingTime?: number;
   };
 }
 
@@ -72,6 +74,17 @@ export interface User {
   clearance: ClearanceLevel;
   avatar?: string;
   status: 'ACTIVE' | 'INACTIVE' | 'LOCKED';
+  token?: string; // JWT Token
+}
+
+// DTO for Registration
+export interface RegisterUserRequest {
+  fullName: string;
+  departmentId: string;
+  intendedClearance: ClearanceLevel;
+  justification: string;
+  username: string;
+  password?: string;
 }
 
 export interface RegistrationRequest {
@@ -105,6 +118,7 @@ export interface WeaponDocument {
   clearance: ClearanceLevel;
   last_updated: string;
   content_preview?: string;
+  s3_key?: string; // Backend storage reference
 }
 
 export interface AuditLog {
@@ -115,6 +129,7 @@ export interface AuditLog {
   action: string;
   resource: string;
   status: 'SUCCESS' | 'DENIED' | 'WARNING';
+  ip_address?: string;
 }
 
 export interface SensitiveWordPolicy {
@@ -141,8 +156,8 @@ export interface RetrievalConfig {
   strategy: 'hybrid' | 'vector' | 'keyword';
   tiers: {
     faq: boolean;
-    graph: boolean;
-    docs: boolean;
+    graph: boolean; // Apache AGE
+    docs: boolean;  // pgvector
     llm: boolean;
   };
   enhanced: {
@@ -155,25 +170,38 @@ export interface RetrievalConfig {
 export interface ReasoningStep {
   title: string;
   content: string;
-  type: 'search' | 'reason' | 'verify' | 'security_check' | 'rewrite' | 'hyde';
+  type: 'search' | 'reason' | 'verify' | 'security_check' | 'rewrite' | 'hyde' | 'graph_traversal';
+  duration_ms?: number;
 }
 
+// Enhanced Provenance for Backend RAG
 export interface Provenance {
   sentence_id: string;
+  source_type: 'FAQ' | 'KG' | 'DOCS' | 'LLM'; // Discriminator
   source_name: string;
-  doc_id?: string; // Added for navigation linkage
+  doc_id?: string;
+  
+  // Content
   text: string;
+  
+  // Metadata for different sources
+  faq_meta?: { id: string; version?: string; question?: string };
+  kg_meta?: { head: string; relation: string; tail: string; path_depth?: number };
+  doc_meta?: { page_number?: number; chunk_index?: number };
+
   media_url?: string;
   media_type?: 'image' | 'video' | 'audio';
-  source_uri?: string;
+  
+  score: number; // Similarity score (Cosine / BM25)
+  security_level: ClearanceLevel;
+
   start?: number;
   end?: number;
-  score: number;
-  security_level: ClearanceLevel;
 }
 
 export interface QAResponse {
-  id?: string;
+  id?: string; // Answer ID
+  conversation_id?: string;
   answer: string;
   media?: {
     type: 'image' | 'video' | 'audio';
@@ -187,24 +215,51 @@ export interface QAResponse {
   is_desensitized: boolean;
   timestamp?: string;
   tier_hit?: 'FAQ' | 'GRAPH' | 'DOCS' | 'LLM';
-  related_questions?: string[]; // Smart suggestions
+  related_questions?: string[];
+}
+
+// --- Agent / Doc Processing Types ---
+export interface ProofreadSuggestion {
+  id: number;
+  type: string;
+  original: string;
+  suggestion: string;
+  reason: string;
+  status?: 'accepted' | 'rejected' | 'pending';
 }
 
 export interface Message {
   id: string;
+  conversation_id?: string;
   role: 'user' | 'assistant';
-  content: string; // User query or Assistant answer text
-  quote?: string; // For "Contextual Citation"
+  content: string; 
+  quote?: string;
   timestamp: string;
-  // Extra data for assistant messages to render complex UI
   qaResponse?: QAResponse; 
 }
 
 export interface Conversation {
   id: string;
   title: string;
+  user_id?: string;
   messages: Message[];
-  createdAt: string;
-  updatedAt: string;
-  bound_kb_ids: string[]; // Added: Specific KBs bound to this chat
+  created_at: string;
+  updated_at: string;
+  bound_kb_ids: string[];
+}
+
+// DTOs for Chat Service
+export interface CreateChatRequest {
+  title?: string;
+  bound_kb_ids: string[];
+}
+
+export interface UpdateChatRequest {
+  title: string;
+}
+
+export interface FAQFeedbackRequest {
+  conversation_id: string;
+  question: string;
+  answer: string;
 }

@@ -343,10 +343,10 @@ const QAView: React.FC<QAViewProps> = ({ currentUser, onOpenDocument }) => {
                     <span className="truncate">{conv.title}</span>
                  </div>
                  <div className="hidden group-hover:flex gap-1 ml-2">
-                    <button onClick={(e) => handleRenameChat(e, conv.id)} className="p-1 hover:bg-blue-100 dark:hover:bg-blue-900/30 rounded text-blue-500">
+                    <button onClick={(e) => handleRenameChat(e, conv.id)} className="p-1 hover:bg-blue-100 dark:hover:bg-blue-900/30 rounded text-blue-500" title="重命名">
                        <svg width="10" height="10" viewBox="0 0 16 16" fill="currentColor"><path d="M12.146.146a.5.5 0 0 1 .708 0l3 3a.5.5 0 0 1 0 .708l-10 10a.5.5 0 0 1-.168.11l-5 2a.5.5 0 0 1-.65-.65l2-5a.5.5 0 0 1 .11-.168l10-10zM11.207 2.5 13.5 4.793 14.793 3.5 12.5 1.207 11.207 2.5zm1.586 3L10.5 3.207 4 9.707V10h.5a.5.5 0 0 1 .5.5v.5h.5a.5.5 0 0 1 .5.5v.5h.293l6.5-6.5zm-9.761 5.175-.106.377-.192.957.957-.192.376-.106L5.454 8.544l-.308-.308-2.55 2.55z"/></svg>
                     </button>
-                    <button onClick={(e) => handleDeleteChat(e, conv.id)} className="p-1 hover:bg-red-100 dark:hover:bg-red-900/30 rounded text-red-500">
+                    <button onClick={(e) => handleDeleteChat(e, conv.id)} className="p-1 hover:bg-red-100 dark:hover:bg-red-900/30 rounded text-red-500" title="删除会话">
                        <svg width="10" height="10" viewBox="0 0 16 16" fill="currentColor"><path d="M2.5 1a1 1 0 0 0-1 1v1a1 1 0 0 0 1 1H3v9a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2V4h.5a1 1 0 0 0 1-1V2a1 1 0 0 0-1-1H10a1 1 0 0 0-1-1H7a1 1 0 0 0-1 1H2.5zm3 4a.5.5 0 0 1 .5.5v7a.5.5 0 0 1-1 0v-7a.5.5 0 0 1 .5-.5zM8 5a.5.5 0 0 1 .5.5v7a.5.5 0 0 1-1 0v-7A.5.5 0 0 1 8 5zm3 .5v7a.5.5 0 0 1-1 0v-7a.5.5 0 0 1 1 0z"/></svg>
                     </button>
                  </div>
@@ -362,7 +362,7 @@ const QAView: React.FC<QAViewProps> = ({ currentUser, onOpenDocument }) => {
         <div className="px-6 py-3 border-b border-[#d0d7de] dark:border-[#30363d] bg-[#f6f8fa]/50 dark:bg-[#0d1117] flex justify-between items-center z-20">
            <div className="flex gap-4">
               <button 
-                onClick={() => setIsConfigOpen(!isConfigOpen)}
+                onClick={() => setIsConfigOpen(true)}
                 className="text-xs font-bold border border-[#d0d7de] dark:border-[#30363d] px-3 py-1.5 rounded-md hover:bg-[#f6f8fa] dark:hover:bg-[#161b22] flex items-center gap-2 transition-all active:scale-95 shadow-sm bg-white dark:bg-[#161b22]"
               >
                 <span>⚙️</span> 检索配置
@@ -386,9 +386,6 @@ const QAView: React.FC<QAViewProps> = ({ currentUser, onOpenDocument }) => {
              </div>
            )}
         </div>
-
-        {/* Config Modal Omitted for brevity, logic remains same */}
-        {/* ... */}
 
         {/* Chat Message List */}
         <div 
@@ -533,10 +530,9 @@ const QAView: React.FC<QAViewProps> = ({ currentUser, onOpenDocument }) => {
          onDownloadPackage={handleDownloadEvidence}
       />
 
-      {/* New Session Modal - logic same as before but calls handleCreateChat */}
+      {/* New Session Modal */}
       {isNewChatModalOpen && (
           <div className="fixed inset-0 z-[100] bg-black/80 backdrop-blur-md flex items-center justify-center p-6 animate-in fade-in duration-200">
-             {/* ...Modal Content reused from previous code, triggering handleCreateChat... */}
              <div className="bg-[#0d1117] border border-[#30363d] w-full max-w-2xl rounded-2xl shadow-2xl flex flex-col overflow-hidden animate-in zoom-in-95">
                  <div className="p-6 border-b border-[#30363d] bg-[#161b22] flex justify-between items-center">
                     <h3 className="text-xl font-bold flex items-center gap-2">
@@ -570,6 +566,79 @@ const QAView: React.FC<QAViewProps> = ({ currentUser, onOpenDocument }) => {
                  </div>
              </div>
           </div>
+      )}
+
+      {/* Search Config Modal */}
+      {isConfigOpen && (
+        <div className="fixed inset-0 z-[100] bg-black/60 backdrop-blur-sm flex items-center justify-center p-6 animate-in fade-in duration-200">
+          <div className="bg-white dark:bg-[#161b22] border border-[#d0d7de] dark:border-[#30363d] w-full max-w-lg rounded-2xl shadow-2xl p-6 animate-in zoom-in-95">
+             <div className="flex justify-between items-center mb-6">
+                <h3 className="font-bold text-lg">高级检索策略配置</h3>
+                <button onClick={() => setIsConfigOpen(false)} className="text-[#8b949e] hover:text-red-500">✕</button>
+             </div>
+             {/* Config Controls */}
+             <div className="space-y-6">
+                {/* Strategy */}
+                <div>
+                   <label className="text-xs font-black text-[#8b949e] uppercase block mb-2">检索模式 (Retrieval Strategy)</label>
+                   <div className="flex gap-2">
+                      {['hybrid', 'vector', 'keyword'].map(s => (
+                         <button 
+                           key={s}
+                           onClick={() => setRetrievalConfig(prev => ({...prev, strategy: s as any}))}
+                           className={`flex-1 py-2 text-xs font-bold rounded border ${
+                              retrievalConfig.strategy === s 
+                              ? 'bg-blue-50 dark:bg-blue-900/20 border-blue-500 text-blue-600 dark:text-blue-400' 
+                              : 'border-[#d0d7de] dark:border-[#30363d]'
+                           }`}
+                         >
+                           {s === 'hybrid' ? '混合 (Hybrid)' : s === 'vector' ? '向量 (Dense)' : '关键词 (Sparse)'}
+                         </button>
+                      ))}
+                   </div>
+                </div>
+                
+                {/* Tiers */}
+                <div>
+                   <label className="text-xs font-black text-[#8b949e] uppercase block mb-2">召回源 (Sources)</label>
+                   <div className="grid grid-cols-2 gap-3">
+                      {Object.entries(retrievalConfig.tiers).map(([key, val]) => (
+                         <label key={key} className="flex items-center gap-2 p-2 border border-[#d0d7de] dark:border-[#30363d] rounded cursor-pointer hover:bg-[#f6f8fa] dark:hover:bg-[#0d1117]">
+                            <input 
+                              type="checkbox" 
+                              checked={val} 
+                              onChange={e => setRetrievalConfig(prev => ({...prev, tiers: {...prev.tiers, [key]: e.target.checked}}))}
+                            />
+                            <span className="text-xs font-bold uppercase">{key}</span>
+                         </label>
+                      ))}
+                   </div>
+                </div>
+
+                {/* Enhanced */}
+                <div>
+                   <label className="text-xs font-black text-[#8b949e] uppercase block mb-2">推理增强 (Reasoning)</label>
+                   <div className="space-y-2">
+                      <label className="flex justify-between items-center p-2 border border-[#d0d7de] dark:border-[#30363d] rounded">
+                         <span className="text-xs font-bold">Query Rewrite (历史指代消解)</span>
+                         <input type="checkbox" checked={retrievalConfig.enhanced.queryRewrite} onChange={e => setRetrievalConfig(prev => ({...prev, enhanced: {...prev.enhanced, queryRewrite: e.target.checked}}))} />
+                      </label>
+                      <label className="flex justify-between items-center p-2 border border-[#d0d7de] dark:border-[#30363d] rounded">
+                         <span className="text-xs font-bold">Step-Back (抽象化提问)</span>
+                         <input type="checkbox" checked={retrievalConfig.enhanced.stepback} onChange={e => setRetrievalConfig(prev => ({...prev, enhanced: {...prev.enhanced, stepback: e.target.checked}}))} />
+                      </label>
+                      <label className="flex justify-between items-center p-2 border border-[#d0d7de] dark:border-[#30363d] rounded">
+                         <span className="text-xs font-bold">HyDE (假设文档嵌入)</span>
+                         <input type="checkbox" checked={retrievalConfig.enhanced.hyde} onChange={e => setRetrievalConfig(prev => ({...prev, enhanced: {...prev.enhanced, hyde: e.target.checked}}))} />
+                      </label>
+                   </div>
+                </div>
+             </div>
+             <div className="mt-8 pt-4 border-t border-[#d0d7de] dark:border-[#30363d] flex justify-end">
+                <button onClick={() => setIsConfigOpen(false)} className="bg-[#0366d6] text-white px-6 py-2 rounded font-bold text-xs shadow-md">应用配置</button>
+             </div>
+          </div>
+        </div>
       )}
     </div>
   );

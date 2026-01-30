@@ -98,6 +98,24 @@ export interface RegistrationRequest {
   requestDate: string;
 }
 
+// Admin DTOs
+export interface CreateUserRequest {
+  name: string;
+  username: string;
+  departmentId: string;
+  roleId: string;
+  clearance: ClearanceLevel;
+  status: 'ACTIVE' | 'INACTIVE' | 'LOCKED';
+}
+
+export interface UpdateUserRequest {
+  name?: string;
+  departmentId?: string;
+  roleId?: string;
+  clearance?: ClearanceLevel;
+  status?: 'ACTIVE' | 'INACTIVE' | 'LOCKED';
+}
+
 export interface KnowledgeBase {
   id: string;
   name: string;
@@ -108,6 +126,24 @@ export interface KnowledgeBase {
   authorized_users: string[]; // User IDs
   owner_id: string;
   created_at: string;
+}
+
+export interface CreateKBRequest {
+  name: string;
+  description: string;
+  clearance: ClearanceLevel;
+  authorized_departments: string[];
+  authorized_roles: string[];
+  authorized_users: string[];
+}
+
+export interface UpdateKBRequest {
+  name?: string;
+  description?: string;
+  clearance?: ClearanceLevel;
+  authorized_departments?: string[];
+  authorized_roles?: string[];
+  authorized_users?: string[];
 }
 
 export interface WeaponDocument {
@@ -132,12 +168,39 @@ export interface AuditLog {
   ip_address?: string;
 }
 
+export interface AuditLogQuery {
+  page?: number;
+  limit?: number;
+  startDate?: string;
+  endDate?: string;
+  userId?: string;
+}
+
+export interface AuditExportRequest {
+  format: 'pdf' | 'csv' | 'xlsx';
+  query: AuditLogQuery;
+}
+
 export interface SensitiveWordPolicy {
   id: string;
   word: string;
   replacement: string;
   severity: 'low' | 'high';
   is_active: boolean;
+}
+
+export interface CreatePolicyRequest {
+  word: string;
+  replacement: string;
+  severity: 'low' | 'high';
+  is_active: boolean;
+}
+
+export interface UpdatePolicyRequest {
+  word?: string;
+  replacement?: string;
+  severity?: 'low' | 'high';
+  is_active?: boolean;
 }
 
 export interface FAQPair {
@@ -149,6 +212,45 @@ export interface FAQPair {
   clearance: ClearanceLevel;
   lastUpdated: string;
   suggestedBy?: string;
+}
+
+export interface CreateFAQRequest {
+  question: string;
+  answer: string;
+  category: string;
+  clearance: ClearanceLevel;
+}
+
+export interface UpdateFAQRequest {
+  question?: string;
+  answer?: string;
+  category?: string;
+  clearance?: ClearanceLevel;
+  status?: AuditStatus;
+}
+
+// Global Search Config DTO
+export interface GlobalSearchConfig {
+  strategy: 'hybrid' | 'vector' | 'keyword';
+  tiers: {
+    faq: boolean;
+    graph: boolean; 
+    docs: boolean;  
+    llm: boolean;
+  };
+  enhanced: {
+    queryRewrite: boolean;
+    hyde: boolean;
+    stepback: boolean;
+  };
+  parameters: {
+    topK: number;
+    threshold: number;
+  };
+}
+
+export interface UpdateSearchConfigRequest {
+  config: GlobalSearchConfig;
 }
 
 export interface RetrievalConfig {
@@ -228,6 +330,26 @@ export interface ProofreadSuggestion {
   status?: 'accepted' | 'rejected' | 'pending';
 }
 
+export interface AgentWriteRequest {
+  topic: string;
+  outline: string;
+}
+
+export interface AgentOptimizeRequest {
+  content: string;
+  instruction: string;
+}
+
+export interface AgentProofreadRequest {
+  content: string;
+  reference?: string;
+}
+
+export interface AgentFormatRequest {
+  content: string;
+  style: string;
+}
+
 export interface Message {
   id: string;
   conversation_id?: string;
@@ -262,4 +384,73 @@ export interface FAQFeedbackRequest {
   conversation_id: string;
   question: string;
   answer: string;
+}
+
+// --- Knowledge Graph Types ---
+
+export interface GraphNode {
+  id: string;
+  label: string;
+  type: string; // e.g., 'WEAPON', 'MANUFACTURER', 'SYSTEM'
+  color?: string;
+  // For UI State (mocking D3 simulation)
+  x?: number;
+  y?: number;
+}
+
+export interface GraphEdge {
+  id: string;
+  source: string;
+  target: string;
+  label: string;
+  type?: string;
+}
+
+export interface GraphData {
+  nodes: GraphNode[];
+  edges: GraphEdge[];
+}
+
+export interface GraphQueryRequest {
+  center_entity_id?: string;
+  depth?: number;
+  types?: string[];
+}
+
+export interface EntityDetail {
+  id: string;
+  name: string;
+  type: string;
+  image_url?: string;
+  attributes: { key: string; value: string }[];
+  related_docs: WeaponDocument[];
+}
+
+export interface PathDiscoveryRequest {
+  start_entity_id: string;
+  end_entity_id: string;
+  max_hops?: number;
+}
+
+export interface PathDiscoveryResult {
+  paths: GraphData[]; // A list of paths found
+}
+
+export interface EvolutionRequest {
+  entity_id: string;
+  date: string; // YYYY-MM-DD
+}
+
+export interface EvolutionSnapshot {
+  date: string;
+  snapshot: GraphData;
+  events: { date: string; title: string; description: string }[];
+}
+
+// --- Document Service Types ---
+
+export interface PrintApplicationRequest {
+  doc_id: string;
+  reason: string;
+  copies: number;
 }

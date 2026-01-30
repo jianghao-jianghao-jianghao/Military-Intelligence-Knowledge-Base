@@ -1,6 +1,6 @@
 
 import React, { useState } from 'react';
-import { Icons, MOCK_DEPARTMENTS } from '../constants.tsx';
+import { Icons } from '../constants.tsx';
 import { ClearanceLevel, UserRole, User } from '../types.ts';
 
 interface LayoutProps {
@@ -28,9 +28,6 @@ const Layout: React.FC<LayoutProps> = ({ children, activeTab, onTabChange, theme
   ];
 
   const visibleNav = navItems.filter(item => item.roles.includes(currentUser.role));
-  
-  // Resolve Department Name
-  const deptName = MOCK_DEPARTMENTS.find(d => d.id === currentUser.departmentId)?.name || '未知部门';
 
   return (
     <div className="flex h-screen bg-white dark:bg-[#0d1117] text-[#24292f] dark:text-[#c9d1d9] transition-colors duration-200 overflow-hidden font-sans">
@@ -64,48 +61,22 @@ const Layout: React.FC<LayoutProps> = ({ children, activeTab, onTabChange, theme
             onClick={() => setIsProfileOpen(!isProfileOpen)}
             className={`w-full flex items-center gap-3 p-2 rounded-lg hover:bg-[#eaeef2] dark:hover:bg-[#21262d] transition-colors ${!isSidebarOpen && 'justify-center'}`}
           >
-            <div className="w-8 h-8 rounded-full bg-gradient-to-tr from-[#0366d6] to-[#58a6ff] flex items-center justify-center text-white font-bold text-xs shrink-0 shadow-sm border border-white/10">
+            <div className="w-8 h-8 rounded-full bg-gradient-to-tr from-[#0366d6] to-[#58a6ff] flex items-center justify-center text-white font-bold text-xs shrink-0 shadow-sm">
               {currentUser.name.charAt(0)}
             </div>
             {isSidebarOpen && (
               <div className="flex flex-col text-left min-w-0">
-                <div className="flex items-center gap-2">
-                    <span className="text-xs font-bold truncate text-[#24292f] dark:text-[#c9d1d9]">{currentUser.name}</span>
-                    <span className="text-[10px] text-[#57606a] dark:text-[#8b949e] font-mono">@{currentUser.username}</span>
-                </div>
-                <span className="text-[10px] text-[#57606a] dark:text-[#8b949e] truncate" title={deptName}>{deptName}</span>
-                <div className="flex items-center gap-1.5 mt-0.5">
-                    <div className={`w-1.5 h-1.5 rounded-full ${currentUser.status === 'ACTIVE' ? 'bg-green-500 animate-pulse' : 'bg-red-500'}`}></div>
-                    <span className={`text-[9px] font-bold uppercase tracking-widest ${
-                        currentUser.clearance === '机密' ? 'text-red-500' : 'text-[#1a7f37] dark:text-[#3fb950]'
-                    }`}>{currentUser.clearance}</span>
-                </div>
+                <span className="text-xs font-bold truncate">{currentUser.name}</span>
+                <span className="text-[9px] text-[#1a7f37] dark:text-[#3fb950] font-bold uppercase tracking-widest">{currentUser.clearance}</span>
               </div>
             )}
           </button>
 
           {isProfileOpen && isSidebarOpen && (
-            <div className="absolute bottom-full left-3 right-3 mb-2 bg-white dark:bg-[#1c2128] border border-[#d0d7de] dark:border-[#30363d] rounded-xl shadow-2xl p-1 z-50 animate-in fade-in slide-in-from-bottom-2">
-               <div className="px-3 py-3 border-b border-[#f0f2f4] dark:border-[#30363d] mb-1">
-                  <div className="flex items-center gap-2 mb-2">
-                     <div className="w-8 h-8 rounded-full bg-gradient-to-tr from-[#0366d6] to-[#58a6ff] flex items-center justify-center text-white font-bold text-xs">
-                        {currentUser.name.charAt(0)}
-                     </div>
-                     <div>
-                        <p className="text-xs font-bold text-[#24292f] dark:text-[#c9d1d9]">{currentUser.name}</p>
-                        <p className="text-[10px] text-[#57606a] dark:text-[#8b949e]">@{currentUser.username}</p>
-                     </div>
-                  </div>
-                  <div className="space-y-1 text-[10px] text-[#57606a] dark:text-[#8b949e]">
-                     <div className="flex justify-between">
-                        <span>部门:</span>
-                        <span className="font-bold">{deptName}</span>
-                     </div>
-                     <div className="flex justify-between">
-                        <span>角色:</span>
-                        <span className="font-bold">{currentUser.role}</span>
-                     </div>
-                  </div>
+            <div className="absolute bottom-full left-3 right-3 mb-2 bg-white dark:bg-[#1c2128] border border-[#d0d7de] dark:border-[#30363d] rounded-xl shadow-2xl p-1 z-50">
+               <div className="px-3 py-2 border-b border-[#f0f2f4] dark:border-[#30363d] mb-1">
+                  <p className="text-[10px] font-bold text-[#57606a] dark:text-[#8b949e] uppercase">身份标识</p>
+                  <p className="text-[11px] font-bold mt-1">ID: {currentUser.username}</p>
                </div>
                <button onClick={onToggleTheme} className="w-full text-left px-3 py-2 text-xs hover:bg-[#f6f8fa] dark:hover:bg-[#21262d] rounded-md transition-colors flex items-center gap-2">
                  <span>{theme === 'light' ? '🌙' : '☀️'}</span> 切换主题

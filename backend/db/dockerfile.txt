@@ -1,0 +1,20 @@
+FROM postgres:16
+
+# Install build dependencies
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    build-essential \
+    git \
+    make \
+    postgresql-server-dev-16 \
+    postgresql-16-pgvector \
+    ca-certificates \
+    && rm -rf /var/lib/apt/lists/*
+
+# Build and install Apache AGE (PG16 branch)
+RUN git clone --depth 1 --branch PG16 https://github.com/apache/age.git /tmp/age \
+    && cd /tmp/age \
+    && make PG_CONFIG=/usr/bin/pg_config install \
+    && rm -rf /tmp/age
+
+# Copy initialization scripts
+COPY init.sql /docker-entrypoint-initdb.d/

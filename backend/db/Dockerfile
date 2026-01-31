@@ -27,4 +27,3 @@ RUN git clone --depth 1 --branch PG15 https://github.com/apache/age.git /tmp/age
     && cd /tmp/age \
     && make PG_CONFIG=/usr/bin/pg_config install \
     && rm -rf /tmp/age
-�v�$z֨rZ.t

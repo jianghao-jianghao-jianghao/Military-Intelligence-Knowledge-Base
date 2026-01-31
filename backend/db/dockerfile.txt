@@ -1,5 +1,8 @@
 FROM postgres:16
 
+# Replace sources with Tsinghua mirror for faster apt-get
+RUN sed -i 's/deb.debian.org/mirrors.tuna.tsinghua.edu.cn/g' /etc/apt/sources.list.d/debian.sources || true
+
 # Install build dependencies
 RUN apt-get update && apt-get install -y --no-install-recommends \
     build-essential \
@@ -11,7 +14,8 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     && rm -rf /var/lib/apt/lists/*
 
 # Build and install Apache AGE (PG16 branch)
-RUN git clone --depth 1 --branch PG16 https://github.com/apache/age.git /tmp/age \
+# Using ghproxy to speed up git clone in China
+RUN git clone --depth 1 --branch PG16 https://ghp.ci/https://github.com/apache/age.git /tmp/age \
     && cd /tmp/age \
     && make PG_CONFIG=/usr/bin/pg_config install \
     && rm -rf /tmp/age

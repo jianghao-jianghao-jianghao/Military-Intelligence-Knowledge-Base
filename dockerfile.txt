@@ -5,6 +5,9 @@ WORKDIR /app
 
 COPY package*.json ./
 
+# Set NPM registry to Taobao mirror for China network
+RUN npm config set registry https://registry.npmmirror.com
+
 # Use ci for reproducible builds
 RUN npm ci --silent
 

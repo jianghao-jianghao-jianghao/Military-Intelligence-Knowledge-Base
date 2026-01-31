@@ -1,4 +1,4 @@
-FROM postgres:16
+FROM docker.m.daocloud.io/library/postgres:16
 
 # Replace sources with Tsinghua mirror for faster apt-get
 RUN sed -i 's/deb.debian.org/mirrors.tuna.tsinghua.edu.cn/g' /etc/apt/sources.list.d/debian.sources || true
